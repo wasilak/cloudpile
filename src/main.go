@@ -23,13 +23,18 @@ var sess *session.Session
 var verbose bool
 
 func searchRoute(c *fiber.Ctx) error {
-	log.Printf(c.Query("id"))
 	ids := strings.Split(strings.Replace(c.Query("id"), "%2C", ",", -1), ",")
-
+	
 	ids = libs.Deduplicate(ids)
-	// i-02aa8d8a27f08276c,i-0d100e9d1d008e4c7,i-07562e7f49094d929,i-0cd6a4d0c7e9e3b8f,sg-095409bdc1d553e2e,i-0bc15efbfb9833d83
 
 	items := libs.Describe(awsRegions, ids, awsRoles, sess, accountAliasses, verbose)
+
+	if verbose {
+		log.Println(c.Query("id"))
+		log.Println(ids)
+		log.Println(items)
+	}
+
 	return c.Render("index", fiber.Map{
             "Items": items,
             "IDs": strings.Join(ids, ","),
@@ -42,6 +47,12 @@ func apiSearchRoute(c *fiber.Ctx) error {
 	items := libs.Describe(awsRegions, ids, awsRoles, sess, accountAliasses, verbose)
 
 	c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSONCharsetUTF8)
+
+	if verbose {
+		log.Println(c.Query("id"))
+		log.Println(ids)
+		log.Println(items)
+	}
 
 	return json.NewEncoder(c.Response().BodyWriter()).Encode(items)
 }
