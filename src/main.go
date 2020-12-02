@@ -20,6 +20,7 @@ var awsRegions []string
 var awsRoles []string
 var accountAliasses map[string]string
 var sess *session.Session
+var verbose bool
 
 func searchRoute(c *fiber.Ctx) error {
 	log.Printf(c.Query("id"))
@@ -28,7 +29,7 @@ func searchRoute(c *fiber.Ctx) error {
 	ids = libs.Deduplicate(ids)
 	// i-02aa8d8a27f08276c,i-0d100e9d1d008e4c7,i-07562e7f49094d929,i-0cd6a4d0c7e9e3b8f,sg-095409bdc1d553e2e,i-0bc15efbfb9833d83
 
-	items := libs.Describe(awsRegions, ids, awsRoles, sess, accountAliasses)
+	items := libs.Describe(awsRegions, ids, awsRoles, sess, accountAliasses, verbose)
 	return c.Render("index", fiber.Map{
             "Items": items,
             "IDs": strings.Join(ids, ","),
@@ -38,7 +39,7 @@ func searchRoute(c *fiber.Ctx) error {
 func apiSearchRoute(c *fiber.Ctx) error {
 	ids := strings.Split(strings.Replace(c.Params("id"), "%2C", ",", -1), ",")
 
-	items := libs.Describe(awsRegions, ids, awsRoles, sess, accountAliasses)
+	items := libs.Describe(awsRegions, ids, awsRoles, sess, accountAliasses, verbose)
 
 	c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSONCharsetUTF8)
 
@@ -69,8 +70,9 @@ func main() {
 	awsRegions = viper.GetStringSlice("aws.regions")
 	awsRoles = viper.GetStringSlice("aws.iam_role_arn")
 	accountAliasses = viper.GetStringMapString("aws.account_aliasses")
+	verbose = viper.GetBool("verbose")
 
-	if viper.GetBool("verbose") == true {
+	if verbose == true {
 		log.Println(viper.AllSettings())
 	}
 
@@ -83,7 +85,9 @@ func main() {
 	app.Static("/", "./public")
 
 	// Reload the templates on each render, good for development
-	engine.Reload(true) // Optional. Default: false
+	if verbose == true {
+		engine.Reload(true) // Optional. Default: false
+	}
 
 	// Debug will print each template that is parsed, good for debugging
 	// engine.Debug(true) // Optional. Default: false

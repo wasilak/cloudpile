@@ -25,7 +25,7 @@ type Item struct {
 type Items []Item
 
 // Describe func
-func Describe(awsRegions,  IDs, iamRoles []string, sess *session.Session, accountAliasses map[string]string) Items {
+func Describe(awsRegions,  IDs, iamRoles []string, sess *session.Session, accountAliasses map[string]string, verbose bool) Items {
 
 	items := Items{}
 
@@ -57,7 +57,7 @@ func Describe(awsRegions,  IDs, iamRoles []string, sess *session.Session, accoun
 				accountAlias = val
 			}
 			
-			go runDescribe(&wg, creds, itemsChannel, sess, region, accountID, accountAlias, IDs)
+			go runDescribe(&wg, creds, itemsChannel, sess, region, accountID, accountAlias, IDs, verbose)
 		}
 	}
 
@@ -68,7 +68,7 @@ func Describe(awsRegions,  IDs, iamRoles []string, sess *session.Session, accoun
 	return items
 }
 
-func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials,itemsChannel chan Items, sess *session.Session, region, accountID, accountAlias string, IDs []string) {
+func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials,itemsChannel chan Items, sess *session.Session, region, accountID, accountAlias string, IDs []string, verbose bool) {
 	defer wg.Done()
 
 	awsRegion := aws.String(region)
@@ -87,21 +87,21 @@ func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials,itemsChannel
 		// EC2 instances
 		match, _ = regexp.MatchString("i-[a-zA-Z0-9_]+", id)
 		if match {
-			items := describeEc2(ec2Svc, []*string{awsID}, accountID, accountAlias)
+			items := describeEc2(ec2Svc, []*string{awsID}, accountID, accountAlias, verbose)
 			itemsChannel <- items
 		}
 
 		// Security Groups
 		match, _ = regexp.MatchString("sg-[a-zA-Z0-9_]+", id)
 		if match {
-			items := describeSg(ec2Svc, []*string{awsID}, accountID, accountAlias)
+			items := describeSg(ec2Svc, []*string{awsID}, accountID, accountAlias, verbose)
 			itemsChannel <- items
 		}
 
 	}
 }
 
-func describeSg(ec2Svc *ec2.EC2, IDs []*string, account, accountAlias string) Items {
+func describeSg(ec2Svc *ec2.EC2, IDs []*string, account, accountAlias string, verbose bool) Items {
 	var items []Item
 
 	input := &ec2.DescribeSecurityGroupsInput{
@@ -112,7 +112,7 @@ func describeSg(ec2Svc *ec2.EC2, IDs []*string, account, accountAlias string) It
 	result, err := ec2Svc.DescribeSecurityGroups(input)
 	if err != nil {
 		match, _ := regexp.MatchString("does not exist", err.Error())
-		if !match {
+		if verbose || !match {
 			log.Println("Error", err)
 		}
 		return items
@@ -139,7 +139,7 @@ func describeSg(ec2Svc *ec2.EC2, IDs []*string, account, accountAlias string) It
 	return items
 }
 
-func describeEc2(ec2Svc *ec2.EC2, IDs []*string, account, accountAlias string) Items {
+func describeEc2(ec2Svc *ec2.EC2, IDs []*string, account, accountAlias string, verbose bool) Items {
 	var items []Item
 
 	input := &ec2.DescribeInstancesInput{
@@ -150,7 +150,7 @@ func describeEc2(ec2Svc *ec2.EC2, IDs []*string, account, accountAlias string) I
 	result, err := ec2Svc.DescribeInstances(input)
 	if err != nil {
 		match, _ := regexp.MatchString("does not exist", err.Error())
-		if !match {
+		if verbose || !match {
 			log.Println("Error", err)
 		}
 		return items
