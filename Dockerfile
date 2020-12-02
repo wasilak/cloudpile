@@ -11,6 +11,5 @@ RUN rice embed-go && go build .
 FROM quay.io/wasilak/alpine:3
 
 COPY --from=builder /go/src/github.com/wasilak/cloudpile/cloudpile /usr/local/bin/cloudpile
-COPY --from=builder /go/src/github.com/wasilak/cloudpile/cloudpile_example.yml /etc/cloudpile/cloudpile.yml
 
 CMD ["/usr/local/bin/cloudpile"]
