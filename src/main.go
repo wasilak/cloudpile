@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"log"
 	"os"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/template/html"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/wasilak/cloudpile/libs"
 )
@@ -46,11 +48,18 @@ func apiSearchRoute(c *fiber.Ctx) error {
 func main() {
 	os.Setenv("AWS_SDK_LOAD_CONFIG", "1")
 
+	// using standard library "flag" package
+	flag.Bool("verbose", false, "verbose")
+	flag.String("listen", ":3000", "listen address")
+	flag.String("config", "./", "path to cloudpile.yml")
+
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	pflag.Parse()
+	viper.BindPFlags(pflag.CommandLine)
+
 	viper.SetConfigName("cloudpile")                 // name of config file (without extension)
 	viper.SetConfigType("yaml")                   // REQUIRED if the config file does not have the extension in the name
-	viper.AddConfigPath(".")                      // optionally look for config in the working directory
-	viper.AddConfigPath("$HOME/.cloudpile") // call multiple times to add many search paths
-	viper.AddConfigPath("/etc/cloudpile/")  // path to look for the config file in
+	viper.AddConfigPath(viper.GetString("config"))  // path to look for the config file in
 	viperErr := viper.ReadInConfig() // Find and read the config file
 	if viperErr != nil {             // Handle errors reading the config file
 		log.Fatal(viperErr)
@@ -60,6 +69,10 @@ func main() {
 	awsRegions = viper.GetStringSlice("aws.regions")
 	awsRoles = viper.GetStringSlice("aws.iam_role_arn")
 	accountAliasses = viper.GetStringMapString("aws.account_aliasses")
+
+	if viper.GetBool("verbose") == true {
+		log.Println(viper.AllSettings())
+	}
 
 	engine := html.NewFileSystem(rice.MustFindBox("views").HTTPBox(), ".html")
 	
