@@ -148,6 +148,13 @@ func describeEc2(ec2Svc *ec2.EC2, IDs []*string, account, accountAlias string, v
 
 	// Call to get detailed information on each instance
 	result, err := ec2Svc.DescribeInstances(input)
+
+	if verbose {
+		log.Println(IDs)
+		log.Println(input)
+		log.Println(result)
+	}
+
 	if err != nil {
 		match, _ := regexp.MatchString("does not exist", err.Error())
 		if verbose || !match {
