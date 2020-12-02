@@ -8,8 +8,9 @@ RUN go get github.com/GeertJohan/go.rice/rice
 
 RUN rice embed-go && go build .
 
-FROM quay.io/wasilak/alpine:3
+CMD ["/go/src/github.com/wasilak/cloudpile/cloudpile"]
+# FROM quay.io/wasilak/alpine:3
 
-COPY --from=builder /go/src/github.com/wasilak/cloudpile/cloudpile /usr/local/bin/cloudpile
+# COPY --from=builder /go/src/github.com/wasilak/cloudpile/cloudpile /usr/local/bin/cloudpile
 
-CMD ["/usr/local/bin/cloudpile"]
+# CMD ["/usr/local/bin/cloudpile"]
