@@ -49,7 +49,7 @@ func apiSearchRoute(c *fiber.Ctx) error {
 	c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSONCharsetUTF8)
 
 	if verbose {
-		log.Println(c.Query("id"))
+		log.Println(c.Params("id"))
 		log.Println(ids)
 		log.Println(items)
 	}
