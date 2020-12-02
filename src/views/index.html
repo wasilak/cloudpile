@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+</head>
+<body>
+<div class="container-fluid">
+            <div class="row">
+                <div class="col-sm">
+                    <form id="searchForm" action="/">
+                        <div class="form-group">
+                            <label for="id">ID(s)</label>
+                            <input type="text" class="form-control" id="id" name="id" value="{{.IDs}}" data-role="tagsinput">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </form>
+                    <hr />
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm">
+                    <table class="table table-striped table-bordered table-dark table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">ID</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Account</th>
+                            <th scope="col">Tags</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range $index, $item := .Items}}
+                            
+                                <tr>
+                                    <th scope="row">{{$index}}</th>
+                                    <td>{{$item.ID}}</td>
+                                    <td>{{$item.Type}}</td>
+                                    <td>{{if $item.AccountAlias}}{{$item.AccountAlias}} - {{end}}{{$item.Account}}</td>
+                                    <td>
+                                        <ul>
+                                        {{range $tag := $item.Tags}}
+                                            <li>{{$tag.Key}} = {{$tag.Value}}</li>
+                                        {{end}}
+                                        </ul>
+                                    </td>
+                                </tr>
+                        {{ end }}
+                    </tbody>
+                    </table>
+                </div>
+            </div>
+            {{/* <div class="row">
+                <div class="col-sm">
+                    <pre>
+                        <code>
+                        {{.Reservations}}
+                        </code>
+                    </pre>
+                </div>
+            </div> */}}
+        </div>
+    
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+</body>
+</html>

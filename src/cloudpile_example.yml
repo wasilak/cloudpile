@@ -1,0 +1,6 @@
+---
+listen: :3000
+aws:
+  iam_role_arn: []
+  account_aliasses: []
+  regions: []
