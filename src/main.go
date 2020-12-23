@@ -69,10 +69,14 @@ func main() {
 	pflag.Parse()
 	viper.BindPFlags(pflag.CommandLine)
 
+	viper.SetEnvPrefix("CLOUDPILE")
+	viper.AutomaticEnv()
+
 	viper.SetConfigName("cloudpile")                 // name of config file (without extension)
 	viper.SetConfigType("yaml")                   // REQUIRED if the config file does not have the extension in the name
 	viper.AddConfigPath(viper.GetString("config"))  // path to look for the config file in
 	viperErr := viper.ReadInConfig() // Find and read the config file
+	
 	if viperErr != nil {             // Handle errors reading the config file
 		log.Fatal(viperErr)
 		panic(viperErr)
