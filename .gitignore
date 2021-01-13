@@ -98,3 +98,5 @@ override.tf.json
 
 src/cloudpile.yml
 infrastructure
+src/rice-box.go
+src/pkged.go

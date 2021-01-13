@@ -7,10 +7,11 @@ import (
 	"os"
 	"strings"
 
-	rice "github.com/GeertJohan/go.rice"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/template/html"
+	"github.com/markbates/pkger"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/wasilak/cloudpile/libs"
@@ -24,7 +25,7 @@ var verbose bool
 
 func searchRoute(c *fiber.Ctx) error {
 	ids := strings.Split(strings.Replace(c.Query("id"), "%2C", ",", -1), ",")
-	
+
 	ids = libs.Deduplicate(ids)
 
 	items := libs.Describe(awsRegions, ids, awsRoles, sess, accountAliasses, verbose)
@@ -36,9 +37,9 @@ func searchRoute(c *fiber.Ctx) error {
 	}
 
 	return c.Render("index", fiber.Map{
-            "Items": items,
-            "IDs": strings.Join(ids, ","),
-        })
+		"Items": items,
+		"IDs":   strings.Join(ids, ","),
+	})
 }
 
 func apiSearchRoute(c *fiber.Ctx) error {
@@ -72,12 +73,12 @@ func main() {
 	viper.SetEnvPrefix("CLOUDPILE")
 	viper.AutomaticEnv()
 
-	viper.SetConfigName("cloudpile")                 // name of config file (without extension)
-	viper.SetConfigType("yaml")                   // REQUIRED if the config file does not have the extension in the name
-	viper.AddConfigPath(viper.GetString("config"))  // path to look for the config file in
-	viperErr := viper.ReadInConfig() // Find and read the config file
-	
-	if viperErr != nil {             // Handle errors reading the config file
+	viper.SetConfigName("cloudpile")               // name of config file (without extension)
+	viper.SetConfigType("yaml")                    // REQUIRED if the config file does not have the extension in the name
+	viper.AddConfigPath(viper.GetString("config")) // path to look for the config file in
+	viperErr := viper.ReadInConfig()               // Find and read the config file
+
+	if viperErr != nil { // Handle errors reading the config file
 		log.Fatal(viperErr)
 		panic(viperErr)
 	}
@@ -91,10 +92,11 @@ func main() {
 		log.Println(viper.AllSettings())
 	}
 
-	engine := html.NewFileSystem(rice.MustFindBox("views").HTTPBox(), ".html")
-	
+	engine := html.NewFileSystem(pkger.Dir("/views"), ".html")
+
 	app := fiber.New(fiber.Config{
-		Views: engine,
+		Views:                 engine,
+		DisableStartupMessage: false,
 	})
 
 	app.Static("/", "./public")
@@ -109,10 +111,10 @@ func main() {
 
 	sess = session.Must(session.NewSession())
 
-	// appLogger := logger.New(logger.Config{
-	// 	Format: `{"pid":${pid}, "timestamp":"${time}", "status":${status}, "latency":"${latency}", "method":"${method}", "path":"${path}"}` + "\n",
-	// })
-	// app.Use(appLogger)
+	appLogger := logger.New(logger.Config{
+		Format: `${pid} ${locals:requestid} ${status} - ${method} ${path}​` + "\n",
+	})
+	app.Use(appLogger)
 
 	app.Get("/", searchRoute)
 	app.Get("/api/search/:id", apiSearchRoute)
