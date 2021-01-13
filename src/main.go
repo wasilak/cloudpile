@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/template/html"
 	"github.com/markbates/pkger"
@@ -98,6 +99,8 @@ func main() {
 		Views:                 engine,
 		DisableStartupMessage: false,
 	})
+
+	app.Use(compress.New())
 
 	app.Static("/", "./public")
 
