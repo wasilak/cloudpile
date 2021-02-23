@@ -5,6 +5,7 @@ import (
 	"flag"
 	"log"
 	"os"
+	// "net/http"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -24,6 +25,11 @@ var accountAliasses map[string]string
 var sess *session.Session
 var verbose bool
 
+func indexRoute(c *fiber.Ctx) error {
+	// return c.Render("main", fiber.Map{}, "layout")
+	return c.Render("main", fiber.Map{})
+}
+
 func searchRoute(c *fiber.Ctx) error {
 	ids := strings.Split(strings.Replace(c.Query("id"), "%2C", ",", -1), ",")
 
@@ -37,7 +43,7 @@ func searchRoute(c *fiber.Ctx) error {
 		log.Println(items)
 	}
 
-	return c.Render("index", fiber.Map{
+	return c.Render("search", fiber.Map{
 		"Items": items,
 		"IDs":   strings.Join(ids, ","),
 	})
@@ -95,6 +101,9 @@ func main() {
 
 	engine := html.NewFileSystem(pkger.Dir("/views"), ".html")
 
+	engine.Debug(true) // Optional. Default: false
+	engine.Layout("content")
+
 	app := fiber.New(fiber.Config{
 		Views:                 engine,
 		DisableStartupMessage: false,
@@ -110,16 +119,17 @@ func main() {
 	}
 
 	// Debug will print each template that is parsed, good for debugging
-	// engine.Debug(true) // Optional. Default: false
+
 
 	sess = session.Must(session.NewSession())
 
 	appLogger := logger.New(logger.Config{
-		Format: `${pid} ${locals:requestid} ${status} - ${method} ${path}​` + "\n",
+		Format: `${pid} ${locals:requestid} ${status} - ${method} ${path}​ ${query}​ ${queryParams}​` + "\n",
 	})
 	app.Use(appLogger)
 
-	app.Get("/", searchRoute)
+	app.Get("/", indexRoute)
+	app.Get("/search", searchRoute)
 	app.Get("/api/search/:id", apiSearchRoute)
 
 	app.Listen(viper.GetString("listen"))

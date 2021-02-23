@@ -7,7 +7,8 @@ tmp_dir = "tmp"
 
 [build]
 # Just plain old shell command. You could use `make` as well.
-cmd = "go build -o ./tmp/main ."
+# cmd = "go build -o ./tmp/main ."
+cmd = "pkger && go build -o ./tmp/main ."
 # Binary file yields from `cmd`.
 bin = "tmp/main"
 # Customize binary.
@@ -19,7 +20,7 @@ exclude_dir = ["assets", "tmp", "vendor", "frontend/node_modules"]
 # Watch these directories if you specified.
 include_dir = []
 # Exclude files.
-exclude_file = []
+exclude_file = ["pkged.go"]
 # Exclude unchanged files.
 exclude_unchanged = true
 # This log file places in your tmp_dir.
