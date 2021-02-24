@@ -1,11 +1,12 @@
 package main
 
 import (
+	"embed"
 	"encoding/json"
 	"flag"
 	"log"
+	"net/http"
 	"os"
-	// "net/http"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -13,7 +14,6 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/template/html"
-	"github.com/markbates/pkger"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/wasilak/cloudpile/libs"
@@ -25,9 +25,11 @@ var accountAliasses map[string]string
 var sess *session.Session
 var verbose bool
 
+//go:embed views
+var views embed.FS
+
 func indexRoute(c *fiber.Ctx) error {
-	// return c.Render("main", fiber.Map{}, "layout")
-	return c.Render("main", fiber.Map{})
+	return c.Render("views/main", fiber.Map{})
 }
 
 func searchRoute(c *fiber.Ctx) error {
@@ -43,7 +45,7 @@ func searchRoute(c *fiber.Ctx) error {
 		log.Println(items)
 	}
 
-	return c.Render("search", fiber.Map{
+	return c.Render("views/search", fiber.Map{
 		"Items": items,
 		"IDs":   strings.Join(ids, ","),
 	})
@@ -99,10 +101,12 @@ func main() {
 		log.Println(viper.AllSettings())
 	}
 
-	engine := html.NewFileSystem(pkger.Dir("/views"), ".html")
+	engine := html.NewFileSystem(http.FS(views), ".html")
 
-	engine.Debug(true) // Optional. Default: false
-	engine.Layout("content")
+	// Debug will print each template that is parsed, good for debugging
+	engine.Debug(true)
+
+	// engine.Layout("content")
 
 	app := fiber.New(fiber.Config{
 		Views:                 engine,
@@ -117,9 +121,6 @@ func main() {
 	if verbose == true {
 		engine.Reload(true) // Optional. Default: false
 	}
-
-	// Debug will print each template that is parsed, good for debugging
-
 
 	sess = session.Must(session.NewSession())
 
