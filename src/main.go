@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/compress"
+	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/template/html"
 	"github.com/spf13/pflag"
@@ -27,6 +28,9 @@ var verbose bool
 
 //go:embed views
 var views embed.FS
+
+//go:embed assets/*
+var assets embed.FS
 
 func indexRoute(c *fiber.Ctx) error {
 	return c.Render("views/main", fiber.Map{})
@@ -115,7 +119,9 @@ func main() {
 
 	app.Use(compress.New())
 
-	app.Static("/", "./public")
+	app.Use("/public", filesystem.New(filesystem.Config{
+		Root: http.FS(assets),
+	}))
 
 	// Reload the templates on each render, good for development
 	if verbose == true {
