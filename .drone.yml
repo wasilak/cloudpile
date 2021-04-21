@@ -64,11 +64,12 @@ steps:
       password:
         from_secret: docker_password
       spec: .drone-manifest.tmpl
+      ignore_missing: true
       # target: quay.io/wasilak/cloudpile-test:0.0.1
       # template: quay.io/wasilak/cloudpile-test:0.0.1-OS-ARCH
-      platforms:
-        - linux/amd64
-        # - linux/arm64
+      # platforms:
+      #   - linux/amd64
+      # - linux/arm64
     when:
       event:
         tag
