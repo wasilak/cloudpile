@@ -23,17 +23,17 @@ steps:
   - name: build amd64
     image: plugins/docker
     environment:
-      BUILDPLATFORM: darwin/amd64
+      BUILDPLATFORM: linux/amd64
       TARGETPLATFORM: linux/amd64
     settings:
       repo: quay.io/wasilak/cloudpile-test
       registry: quay.io
-      # auto_tag: true
-      # insecure: true
-      tags:
-        - latest-amd64
-        - "1.0.0-amd64"
-      # auto_tag_suffix: "-amd64"
+      label_schema: []
+      auto_tag: true
+      auto_tag_suffix: linux-amd64
+      # tags:
+      #   - latest-amd64
+      #   - "1.0.0-amd64"
       username:
         from_secret: docker_username
       password:
@@ -42,6 +42,33 @@ steps:
       build_args_from_env:
         - BUILDPLATFORM
         - TARGETPLATFORM
+    when:
+      event: tag
+
+  - name: build arm64
+    image: plugins/docker
+    environment:
+      BUILDPLATFORM: linux/arm64
+      TARGETPLATFORM: linux/arm64
+    settings:
+      repo: quay.io/wasilak/cloudpile-test
+      registry: quay.io
+      label_schema: []
+      auto_tag: true
+      auto_tag_suffix: linux-arm64
+      # tags:
+      #   - latest-arm64
+      #   - "1.0.0-arm64"
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+
+      build_args_from_env:
+        - BUILDPLATFORM
+        - TARGETPLATFORM
+    when:
+      event: tag
 
   - name: manifest
     image: plugins/manifest
@@ -55,9 +82,12 @@ steps:
         from_secret: docker_password
       # spec: drone-manifest.tmpl
       target: quay.io/wasilak/cloudpile-test:1.0.0
-      template: quay.io/wasilak/cloudpile-test:1.0.0-ARCH
+      template: quay.io/wasilak/cloudpile-test:1.0.0-OS-ARCH
       platforms:
         - linux/amd64
+    when:
+      event:
+        tag
         # - linux/arm
         # - linux/arm64
     # depends_on:
