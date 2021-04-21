@@ -20,14 +20,33 @@ steps:
   #   commands:
   #     - go build -o dist/cloudflare-ddns-$${GOOS}-$${GOARCH}
 
+- name: build amd64
+  image: plugins/docker
+  settings:
+    repo: quay.io/wasilak/cloudpile
+    # auto_tag: true
+    tags:
+      - latest
+      - '1.0.0'
+    auto_tag_suffix: "-amd64"
+    username:
+      from_secret: docker_username
+    password:
+      from_secret: docker_password
+
   - name: manifest
     image: plugins/manifest
     settings:
-      username: wasilak
-      password: VyZIhNEkzdCQEcud4YdNqWNt8RgH5oLtCM6DsJXh0vbMjTygCu0k7Hb8U60ftGRO0sCck9aSq4SnE6n/O+DymwNdRZT0lw2Mb8CLDPTOEwk=
-      spec: drone-manifest.tmpl
-      # target: quay.io/wasilak/cloudpile:v1.0.0
-      # template: quay.io/wasilak/cloudpile:v1.0.0-OS-ARCH
+      tags:
+        - latest
+        - '1.0.0'
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      # spec: drone-manifest.tmpl
+      target: quay.io/wasilak/cloudpile:v1.0.0
+      template: quay.io/wasilak/cloudpile:v1.0.0-OS-ARCH
       platforms:
         - linux/amd64
         # - linux/arm
