@@ -20,26 +20,26 @@ steps:
   #   commands:
   #     - go build -o dist/cloudflare-ddns-$${GOOS}-$${GOARCH}
 
-- name: build amd64
-  image: plugins/docker
-  settings:
-    repo: quay.io/wasilak/cloudpile
-    # auto_tag: true
-    tags:
-      - latest
-      - '1.0.0'
-    auto_tag_suffix: "-amd64"
-    username:
-      from_secret: docker_username
-    password:
-      from_secret: docker_password
+  - name: build amd64
+    image: plugins/docker
+    settings:
+      repo: quay.io/wasilak/cloudpile
+      # auto_tag: true
+      tags:
+        - latest
+        - "1.0.0"
+      auto_tag_suffix: "-amd64"
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
 
   - name: manifest
     image: plugins/manifest
     settings:
       tags:
         - latest
-        - '1.0.0'
+        - "1.0.0"
       username:
         from_secret: docker_username
       password:
