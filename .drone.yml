@@ -25,8 +25,9 @@ steps:
     settings:
       username: wasilak
       password: VyZIhNEkzdCQEcud4YdNqWNt8RgH5oLtCM6DsJXh0vbMjTygCu0k7Hb8U60ftGRO0sCck9aSq4SnE6n/O+DymwNdRZT0lw2Mb8CLDPTOEwk=
-      target: quay.io/wasilak/cloudpile:v1.0.0
-      template: quay.io/wasilak/cloudpile:v1.0.0-OS-ARCH
+      spec: drone-manifest.tmpl
+      # target: quay.io/wasilak/cloudpile:v1.0.0
+      # template: quay.io/wasilak/cloudpile:v1.0.0-OS-ARCH
       platforms:
         - linux/amd64
         # - linux/arm
