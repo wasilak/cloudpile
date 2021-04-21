@@ -75,8 +75,6 @@ steps:
         tag
         # - linux/arm
         # - linux/arm64
-    # depends_on:
-    #   - osx amd64
-    #   - linux amd64
-    #   - linux armv7
-    #   - linux arm64
+    depends_on:
+      - build amd64
+      - build arm64
