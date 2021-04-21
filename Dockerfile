@@ -14,7 +14,7 @@ COPY ./src .
 # RUN pkger && go build .
 RUN go build .
 
-FROM --platform=$BUILDPLATFORM quay.io/wasilak/alpine:3
+FROM --platform=linux/amd64 quay.io/wasilak/alpine:3
 
 COPY --from=builder /go/src/github.com/wasilak/cloudpile/cloudpile /cloudpile
 
