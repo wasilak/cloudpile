@@ -35,9 +35,12 @@ steps:
         from_secret: docker_username
       password:
         from_secret: docker_password
-      build_args:
-        - BUILDPLATFORM=darwin/amd64
-        - TARGETPLATFORM=linux/amd64
+      environment:
+        BUILDPLATFORM: darwin/amd64
+        TARGETPLATFORM: linux/amd64
+      build_args_from_env:
+        - BUILDPLATFORM
+        - TARGETPLATFORM
 
   - name: manifest
     image: plugins/manifest
