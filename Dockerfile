@@ -1,4 +1,4 @@
-FROM  --platform=$BUILDPLATFORM quay.io/wasilak/golang:1.16-alpine as builder
+FROM  --platform=darwin/amd64 quay.io/wasilak/golang:1.16-alpine as builder
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
