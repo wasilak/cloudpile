@@ -25,11 +25,11 @@ steps:
     settings:
       repo: quay.io/wasilak/cloudpile-test
       # auto_tag: true
-      insecure: true
+      # insecure: true
       tags:
-        - latest
-        - "1.0.0"
-      auto_tag_suffix: "-amd64"
+        - latest-amd64
+        - "1.0.0-amd64"
+      # auto_tag_suffix: "-amd64"
       username:
         from_secret: docker_username
       password:
