@@ -36,7 +36,7 @@ steps:
       password:
         from_secret: docker_password
       build_args:
-        - BUILDPLATFORM=linux/amd64
+        - BUILDPLATFORM=darwin/amd64
         - TARGETPLATFORM=linux/amd64
 
   - name: manifest
