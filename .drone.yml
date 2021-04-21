@@ -11,15 +11,6 @@ platform:
   arch: amd64
 
 steps:
-  # - name: linux amd64
-  #   image: quay.io/wasilak/golang:1.16-alpine
-  #   pull: if-not-exists
-  #   environment:
-  #     GOOS: linux
-  #     GOARCH: amd64
-  #   commands:
-  #     - go build -o dist/cloudflare-ddns-$${GOOS}-$${GOARCH}
-
   - name: build amd64
     image: plugins/docker
     environment:
@@ -28,12 +19,9 @@ steps:
     settings:
       repo: quay.io/wasilak/cloudpile-test
       registry: quay.io
-      label_schema: []
+      # label_schema: []
       auto_tag: true
       auto_tag_suffix: linux-amd64
-      # tags:
-      #   - latest-amd64
-      #   - "1.0.0-amd64"
       username:
         from_secret: docker_username
       password:
@@ -45,48 +33,42 @@ steps:
     when:
       event: tag
 
-  - name: build arm64
-    image: plugins/docker
-    environment:
-      BUILDPLATFORM: linux/arm64
-      TARGETPLATFORM: linux/arm64
-    settings:
-      repo: quay.io/wasilak/cloudpile-test
-      registry: quay.io
-      label_schema: []
-      auto_tag: true
-      auto_tag_suffix: linux-arm64
-      # tags:
-      #   - latest-arm64
-      #   - "1.0.0-arm64"
-      username:
-        from_secret: docker_username
-      password:
-        from_secret: docker_password
+  # - name: build arm64
+  #   image: plugins/docker
+  #   environment:
+  #     BUILDPLATFORM: linux/arm64
+  #     TARGETPLATFORM: linux/arm64
+  #   settings:
+  #     repo: quay.io/wasilak/cloudpile-test
+  #     registry: quay.io
+  #     # label_schema: []
+  #     auto_tag: true
+  #     auto_tag_suffix: linux-arm64
+  #     username:
+  #       from_secret: docker_username
+  #     password:
+  #       from_secret: docker_password
 
-      build_args_from_env:
-        - BUILDPLATFORM
-        - TARGETPLATFORM
-    when:
-      event: tag
+  #     build_args_from_env:
+  #       - BUILDPLATFORM
+  #       - TARGETPLATFORM
+  #   when:
+  #     event: tag
 
   - name: manifest
     image: plugins/manifest
     settings:
-      # tags:
-      #   - latest
-      #   - "1.0.0"
       auto_tag: true
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
-      # spec: drone-manifest.tmpl
-      target: quay.io/wasilak/cloudpile-test:0.0.1
-      template: quay.io/wasilak/cloudpile-test:0.0.1-OS-ARCH
+      spec: drone-manifest.tmpl
+      # target: quay.io/wasilak/cloudpile-test:0.0.1
+      # template: quay.io/wasilak/cloudpile-test:0.0.1-OS-ARCH
       platforms:
         - linux/amd64
-        - linux/arm64
+        # - linux/arm64
     when:
       event:
         tag
