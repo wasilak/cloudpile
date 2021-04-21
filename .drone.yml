@@ -26,7 +26,7 @@ steps:
       BUILDPLATFORM: darwin/amd64
       TARGETPLATFORM: linux/amd64
     settings:
-      repo: wasilak/cloudpile-test
+      repo: quay.io/wasilak/cloudpile-test
       registry: quay.io
       # auto_tag: true
       # insecure: true
