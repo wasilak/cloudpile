@@ -22,6 +22,9 @@ steps:
 
   - name: build amd64
     image: plugins/docker
+    environment:
+      BUILDPLATFORM: darwin/amd64
+      TARGETPLATFORM: linux/amd64
     settings:
       repo: wasilak/cloudpile-test
       registry: quay.io
@@ -35,9 +38,7 @@ steps:
         from_secret: docker_username
       password:
         from_secret: docker_password
-      environment:
-        BUILDPLATFORM: darwin/amd64
-        TARGETPLATFORM: linux/amd64
+
       build_args_from_env:
         - BUILDPLATFORM
         - TARGETPLATFORM
