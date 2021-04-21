@@ -19,7 +19,6 @@ steps:
     settings:
       repo: quay.io/wasilak/cloudpile-test
       registry: quay.io
-      # label_schema: []
       auto_tag: true
       auto_tag_suffix: linux-amd64
       username:
@@ -41,9 +40,29 @@ steps:
     settings:
       repo: quay.io/wasilak/cloudpile-test
       registry: quay.io
-      # label_schema: []
       auto_tag: true
       auto_tag_suffix: linux-arm64
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+
+      build_args_from_env:
+        - BUILDPLATFORM
+        - TARGETPLATFORM
+    when:
+      event: tag
+
+  - name: build arm7
+    image: plugins/docker
+    environment:
+      BUILDPLATFORM: linux/arm/v7
+      TARGETPLATFORM: linux/arm/v7
+    settings:
+      repo: quay.io/wasilak/cloudpile-test
+      registry: quay.io
+      auto_tag: true
+      auto_tag_suffix: linux-arm7
       username:
         from_secret: docker_username
       password:
@@ -65,16 +84,9 @@ steps:
         from_secret: docker_password
       spec: .drone-manifest.tmpl
       ignore_missing: true
-      # target: quay.io/wasilak/cloudpile-test:0.0.1
-      # template: quay.io/wasilak/cloudpile-test:0.0.1-OS-ARCH
-      # platforms:
-      #   - linux/amd64
-      # - linux/arm64
     when:
-      event:
-        tag
-        # - linux/arm
-        # - linux/arm64
+      event: tag
     depends_on:
       - build amd64
       - build arm64
+      - build arm7
