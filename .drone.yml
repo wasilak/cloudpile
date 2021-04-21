@@ -23,8 +23,9 @@ steps:
   - name: build amd64
     image: plugins/docker
     settings:
-      repo: quay.io/wasilak/cloudpile
+      repo: quay.io/wasilak/cloudpile-test
       # auto_tag: true
+      insecure: true
       tags:
         - latest
         - "1.0.0"
@@ -45,8 +46,8 @@ steps:
       password:
         from_secret: docker_password
       # spec: drone-manifest.tmpl
-      target: quay.io/wasilak/cloudpile:1.0.0
-      template: quay.io/wasilak/cloudpile:1.0.0-OS-ARCH
+      target: quay.io/wasilak/cloudpile-test:1.0.0
+      template: quay.io/wasilak/cloudpile-test:1.0.0-OS-ARCH
       platforms:
         - linux/amd64
         # - linux/arm
