@@ -1,0 +1,38 @@
+---
+kind: pipeline
+type: docker
+name: build & deploy
+
+# workspace:
+#   path: /drone/src
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+  # - name: linux amd64
+  #   image: quay.io/wasilak/golang:1.16-alpine
+  #   pull: if-not-exists
+  #   environment:
+  #     GOOS: linux
+  #     GOARCH: amd64
+  #   commands:
+  #     - go build -o dist/cloudflare-ddns-$${GOOS}-$${GOARCH}
+
+  - name: manifest
+    image: plugins/manifest
+    settings:
+      username: wasilak
+      password: VyZIhNEkzdCQEcud4YdNqWNt8RgH5oLtCM6DsJXh0vbMjTygCu0k7Hb8U60ftGRO0sCck9aSq4SnE6n/O+DymwNdRZT0lw2Mb8CLDPTOEwk=
+      target: quay.io/wasilak/cloudpile:v1.0.0
+      template: quay.io/wasilak/cloudpile:v1.0.0-OS-ARCH
+      platforms:
+        - linux/amd64
+        # - linux/arm
+        # - linux/arm64
+    # depends_on:
+    #   - osx amd64
+    #   - linux amd64
+    #   - linux armv7
+    #   - linux arm64
