@@ -45,8 +45,8 @@ steps:
       password:
         from_secret: docker_password
       # spec: drone-manifest.tmpl
-      target: quay.io/wasilak/cloudpile:v1.0.0
-      template: quay.io/wasilak/cloudpile:v1.0.0-OS-ARCH
+      target: quay.io/wasilak/cloudpile:1.0.0
+      template: quay.io/wasilak/cloudpile:1.0.0-OS-ARCH
       platforms:
         - linux/amd64
         # - linux/arm
