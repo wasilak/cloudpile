@@ -32,7 +32,7 @@ var views embed.FS
 //go:embed assets/*
 var assets embed.FS
 
-func indexRoute(c *fiber.Ctx) error {
+func mainRoute(c *fiber.Ctx) error {
 	return c.Render("views/main", fiber.Map{})
 }
 
@@ -76,7 +76,7 @@ func main() {
 
 	// using standard library "flag" package
 	flag.Bool("verbose", false, "verbose")
-	flag.String("listen", ":3000", "listen address")
+	flag.String("listen", "127.0.0.1:3000", "listen address")
 	flag.String("config", "./", "path to cloudpile.yml")
 
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
@@ -135,7 +135,7 @@ func main() {
 	})
 	app.Use(appLogger)
 
-	app.Get("/", indexRoute)
+	app.Get("/", mainRoute)
 	app.Get("/search", searchRoute)
 	app.Get("/api/search/:id", apiSearchRoute)
 
