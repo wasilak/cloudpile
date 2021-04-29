@@ -43,7 +43,7 @@ steps:
   - name: build docker image
     image: plugins/docker
     settings:
-      repo: quay.io/wasilak/cloudpile-test
+      repo: quay.io/wasilak/cloudpile
       registry: quay.io
       auto_tag: true
       auto_tag_suffix: linux-amd64
@@ -106,7 +106,7 @@ steps:
   - name: build docker image
     image: plugins/docker
     settings:
-      repo: quay.io/wasilak/cloudpile-test
+      repo: quay.io/wasilak/cloudpile
       registry: quay.io
       auto_tag: true
       auto_tag_suffix: linux-arm64
