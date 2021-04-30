@@ -1,6 +1,7 @@
 image: quay.io/wasilak/cloudpile:{{#if build.tag}}{{trimPrefix "v" build.tag}}{{else}}latest{{/if}}
 {{#if build.tags}}
 tags:
+  - latest
 {{#each build.tags}}
   - {{this}}
 {{/each}}
