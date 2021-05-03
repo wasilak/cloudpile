@@ -34,6 +34,8 @@ steps:
         from_secret: aws_access_key_id
       secret_key:
         from_secret: aws_secret_access_key
+      region:
+        from_secret: aws_region
       source: dist/*
       target: /${DRONE_REPO}/${DRONE_REPO_BRANCH}/${DRONE_BUILD_NUMBER}
       strip_prefix: dist/
