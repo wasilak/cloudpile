@@ -95,7 +95,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: wasilal/cloudpile:test
+          tags: wasilak/cloudpile:test
           platforms: linux/amd64,linux/arm64
           build-args: |
             BUILDPLATFORM=${{ matrix.os }}/${{ matrix.arch }}
