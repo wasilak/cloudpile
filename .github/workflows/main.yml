@@ -40,16 +40,15 @@ jobs:
       - name: Build executable
         run: |
           cd src/
-          go build -o ./dist/cloudpile
+          mkdir -p ../dist
+          go build -o ../dist/cloudpile
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
         
       - name: compress executable
         run: |
-          apt update && apt install zip
-          mkdir -p ../dist
-          cd ../dist
+          apt update && apt install zip -y
           chmod +x cloudpile
           zip cloudpile-${{ matrix.os }}-${{ matrix.arch }}.zip cloudpile
           ls -lha .
