@@ -48,7 +48,7 @@ jobs:
         
       - name: compress executable
         run: |
-          apt update && apt install zip -y
+          # apt update && apt install zip -y
           chmod +x cloudpile
           zip cloudpile-${{ matrix.os }}-${{ matrix.arch }}.zip cloudpile
           ls -lha .
