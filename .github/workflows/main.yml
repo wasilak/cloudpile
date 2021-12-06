@@ -97,6 +97,11 @@ jobs:
           push: true
           tags: wasilal/cloudpile:test
           platforms: linux/amd64,linux/arm64
-        env:
-          BUILDPLATFORM: linux/amd64
-          TARGETPLATFORM: linux/amd64
+          build-args: |
+            BUILDPLATFORM=${{ matrix.os }}/${{ matrix.arch }}
+            TARGETPLATFORM=${{ matrix.os }}/${{ matrix.arch }}
+            GOOS=${{ matrix.os }}
+            GOARCH=${{ matrix.arch }}
+#         env:
+#           BUILDPLATFORM: ${{ matrix.os }}/${{ matrix.arch }}
+#           TARGETPLATFORM: ${{ matrix.os }}/${{ matrix.arch }}
