@@ -102,6 +102,7 @@ jobs:
             TARGETPLATFORM=${{ matrix.os }}/${{ matrix.arch }}
             GOOS=${{ matrix.os }}
             GOARCH=${{ matrix.arch }}
+            CLOUDPILE_VERSION=0.0.5
 #         env:
 #           BUILDPLATFORM: ${{ matrix.os }}/${{ matrix.arch }}
 #           TARGETPLATFORM: ${{ matrix.os }}/${{ matrix.arch }}
