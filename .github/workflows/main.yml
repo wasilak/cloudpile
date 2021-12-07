@@ -104,7 +104,7 @@ jobs:
           tags: quay.io/wasilak/cloudpile:test
           # platforms: linux/amd64,linux/arm64
           platforms: linux/amd64
-          context: .
+          # context: .
           # build-args: |
           #   BUILDPLATFORM=${{ matrix.os }}/${{ matrix.arch }}
           #   TARGETPLATFORM=${{ matrix.os }}/${{ matrix.arch }}
