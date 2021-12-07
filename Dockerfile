@@ -1,13 +1,12 @@
-ARG TARGETPLATFORM
-ARG BUILDPLATFORM
-ARG CLOUDPILE_VERSION
+FROM quay.io/wasilak/golang:1.17-alpine as builder
 
-FROM --platform=${BUILDPLATFORM} quay.io/wasilak/alpine:3
+ADD . /app
+WORKDIR /app/src
+RUN mkdir -p ../dist
+RUN go build -o ../dist/cloudpile
 
-ARG GOOS
-ARG GOARCH
-ARG CLOUDPILE_VERSION
+FROM quay.io/wasilak/alpine:3
 
-ADD https://github.com/wasilak/cloudpile/releases/download/${CLOUDPILE_VERSION}/cloudpile-${GOOS}-${GOARCH}.zip /cloudpile
+ADD --from=builder /app/dist/cloudpile /cloudpile
 
 CMD ["/cloudpile"]
