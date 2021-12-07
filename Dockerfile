@@ -7,6 +7,6 @@ RUN go build -o ../dist/cloudpile
 
 FROM quay.io/wasilak/alpine:3
 
-ADD --from=builder /app/dist/cloudpile /cloudpile
+COPY --from=builder /app/dist/cloudpile /cloudpile
 
 CMD ["/cloudpile"]
