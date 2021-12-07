@@ -85,5 +85,5 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: quay.io/wasilak/cloudpile:${{ github.ref }}
+          tags: quay.io/wasilak/cloudpile:${GITHUB_REF##*/}
           platforms: linux/amd64,linux/arm64
