@@ -25,9 +25,9 @@ jobs:
     strategy:
       matrix:
         #os: [linux, darwin]
-        #arch: [amd64, arm64]
+        arch: [amd64, arm64]
         os: [linux]
-        arch: [amd64]
+        # arch: [amd64]
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -102,8 +102,8 @@ jobs:
           push: true
           # registry: quay.io
           tags: quay.io/wasilak/cloudpile:test
-          # platforms: linux/amd64,linux/arm64
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
+          # platforms: linux/amd64
           # context: .
           # build-args: |
           #   BUILDPLATFORM=${{ matrix.os }}/${{ matrix.arch }}
