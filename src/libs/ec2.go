@@ -14,23 +14,24 @@ import (
 
 // Item type
 type Item struct {
-	ID   string
-	Type string
-	Tags []*ec2.Tag
-	Account string
+	ID           string
+	Type         string
+	Tags         []*ec2.Tag
+	Account      string
 	AccountAlias string
+	Region       string
 }
 
 // Items type
 type Items []Item
 
 // Describe func
-func Describe(awsRegions,  IDs, iamRoles []string, sess *session.Session, accountAliasses map[string]string, verbose bool) Items {
+func Describe(awsRegions, IDs, iamRoles []string, sess *session.Session, accountAliasses map[string]string, verbose bool) Items {
 
 	items := Items{}
 
 	var wg sync.WaitGroup
-	
+
 	itemsChannel := make(chan Items)
 
 	// this is required, in order to prevent following situation:
@@ -40,10 +41,9 @@ func Describe(awsRegions,  IDs, iamRoles []string, sess *session.Session, accoun
 	// thus, unblocking goroutine processing :)
 	// see: https://dev.to/sophiedebenedetto/synchronizing-go-routines-with-channels-and-waitgroups-3ke2
 	go func() {
-        wg.Wait()
-        close(itemsChannel)
-    }()
-
+		wg.Wait()
+		close(itemsChannel)
+	}()
 
 	for _, iamRole := range iamRoles {
 		for _, region := range awsRegions {
@@ -56,7 +56,7 @@ func Describe(awsRegions,  IDs, iamRoles []string, sess *session.Session, accoun
 			if val, ok := accountAliasses[accountID]; ok {
 				accountAlias = val
 			}
-			
+
 			go runDescribe(&wg, creds, itemsChannel, sess, region, accountID, accountAlias, IDs, verbose)
 		}
 	}
@@ -68,7 +68,7 @@ func Describe(awsRegions,  IDs, iamRoles []string, sess *session.Session, accoun
 	return items
 }
 
-func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials,itemsChannel chan Items, sess *session.Session, region, accountID, accountAlias string, IDs []string, verbose bool) {
+func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials, itemsChannel chan Items, sess *session.Session, region, accountID, accountAlias string, IDs []string, verbose bool) {
 	defer wg.Done()
 
 	awsRegion := aws.String(region)
@@ -126,11 +126,12 @@ func describeSg(ec2Svc *ec2.EC2, IDs []*string, account, accountAlias string, ve
 		}
 
 		item := Item{
-			ID:   *sg.GroupId,
-			Type: "Security Group",
-			Tags: tags,
-			Account: account,
+			ID:           *sg.GroupId,
+			Type:         "Security Group",
+			Tags:         tags,
+			Account:      account,
 			AccountAlias: accountAlias,
+			Region:       *ec2Svc.Config.Region,
 		}
 
 		items = append(items, item)
@@ -172,11 +173,12 @@ func describeEc2(ec2Svc *ec2.EC2, IDs []*string, account, accountAlias string, v
 			}
 
 			item := Item{
-				ID:   *instance.InstanceId,
-				Type: "EC2 instance",
-				Tags: tags,
-				Account: account,
+				ID:           *instance.InstanceId,
+				Type:         "EC2 instance",
+				Tags:         tags,
+				Account:      account,
 				AccountAlias: accountAlias,
+				Region:       *ec2Svc.Config.Region,
 			}
 
 			items = append(items, item)
