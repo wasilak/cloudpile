@@ -8,8 +8,10 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/dgraph-io/ristretto"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
@@ -25,6 +27,9 @@ var awsRoles []string
 var accountAliasses map[string]string
 var sess *session.Session
 var verbose bool
+var cache *ristretto.Cache
+var cacheTTL time.Duration
+var cacheEnabled bool
 
 //go:embed views
 var views embed.FS
@@ -41,17 +46,13 @@ func searchRoute(c *fiber.Ctx) error {
 
 	ids = libs.Deduplicate(ids)
 
-	items := libs.Describe(awsRegions, ids, awsRoles, sess, accountAliasses, verbose)
-
 	if verbose {
 		log.Println(c.Query("id"))
 		log.Println(ids)
-		log.Println(items)
 	}
 
 	return c.Render("views/search", fiber.Map{
-		"Items": items,
-		"IDs":   strings.Join(ids, ","),
+		"IDs": strings.Join(ids, ","),
 	})
 }
 
@@ -69,7 +70,6 @@ func apiSearchRoute(c *fiber.Ctx) error {
 	if verbose {
 		log.Println(c.Params("id"))
 		log.Println(ids)
-		log.Println(items)
 	}
 
 	return json.NewEncoder(c.Response().BodyWriter()).Encode(items)
@@ -77,15 +77,34 @@ func apiSearchRoute(c *fiber.Ctx) error {
 
 func apiListRoute(c *fiber.Ctx) error {
 	var ids []string
+	var items interface{}
+	var found bool
 
-	items := libs.Describe(awsRegions, ids, awsRoles, sess, accountAliasses, verbose)
+	cacheKey := "list_items"
+
+	if cacheEnabled {
+
+		items, found = cache.Get(cacheKey)
+
+		if !found {
+			items = libs.Describe(awsRegions, ids, awsRoles, sess, accountAliasses, verbose)
+
+			// set a value with a cost of 1
+			cache.SetWithTTL(cacheKey, items, 1, cacheTTL)
+
+			// wait for value to pass through buffers
+			cache.Wait()
+		}
+
+	} else {
+		items = libs.Describe(awsRegions, ids, awsRoles, sess, accountAliasses, verbose)
+	}
 
 	c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSONCharsetUTF8)
 
 	if verbose {
 		log.Println(c.Params("id"))
 		log.Println(ids)
-		log.Println(items)
 	}
 
 	return json.NewEncoder(c.Response().BodyWriter()).Encode(items)
@@ -96,6 +115,7 @@ func main() {
 
 	// using standard library "flag" package
 	flag.Bool("verbose", false, "verbose")
+	flag.Bool("cacheEnabled", false, "cache enabled")
 	flag.String("listen", "127.0.0.1:3000", "listen address")
 	flag.String("config", "./", "path to cloudpile.yml")
 
@@ -120,9 +140,30 @@ func main() {
 	awsRoles = viper.GetStringSlice("aws.iam_role_arn")
 	accountAliasses = viper.GetStringMapString("aws.account_aliasses")
 	verbose = viper.GetBool("verbose")
+	cacheEnabled = viper.GetBool("cache.enabled")
+	cacheTTLString := viper.GetString("cache.TTL")
 
 	if verbose == true {
 		log.Println(viper.AllSettings())
+	}
+
+	if cacheEnabled {
+
+		var cacheErr error
+		cacheTTL, cacheErr = time.ParseDuration(cacheTTLString)
+		if cacheErr != nil {
+			panic(cacheErr)
+		}
+
+		cache, cacheErr = ristretto.NewCache(&ristretto.Config{
+			NumCounters: 1e7,     // number of keys to track frequency of (10M).
+			MaxCost:     1 << 30, // maximum cost of cache (1GB).
+			BufferItems: 64,      // number of keys per Get buffer.
+		})
+
+		if cacheErr != nil {
+			panic(cacheErr)
+		}
 	}
 
 	engine := html.NewFileSystem(http.FS(views), ".html")

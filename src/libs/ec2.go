@@ -65,6 +65,10 @@ func Describe(awsRegions, IDs, iamRoles []string, sess *session.Session, account
 		items = append(items, item...)
 	}
 
+	// if verbose {
+	// 	log.Println(items)
+	// }
+
 	return items
 }
 
@@ -158,12 +162,6 @@ func describeEc2(ec2Svc *ec2.EC2, IDs []*string, account, accountAlias string, v
 
 	// Call to get detailed information on each instance
 	result, err := ec2Svc.DescribeInstances(input)
-
-	if verbose {
-		log.Println(IDs)
-		log.Println(input)
-		log.Println(result)
-	}
 
 	if err != nil {
 		match, _ := regexp.MatchString("does not exist", err.Error())

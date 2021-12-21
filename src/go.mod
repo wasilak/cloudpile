@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/aws/aws-sdk-go v1.42.21
+	github.com/dgraph-io/ristretto v0.1.0
 	github.com/gofiber/fiber/v2 v2.23.0
 	github.com/gofiber/template v1.6.20
 	github.com/klauspost/compress v1.13.6 // indirect

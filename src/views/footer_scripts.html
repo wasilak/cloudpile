@@ -22,19 +22,36 @@
             pagination: true, //enable pagination.
             paginationSizeSelector: [10, 25, 50, 100],
             columns: [
-                {title: "ID", field: "id", headerFilter: "input"},
+                {title: "ID", field: "id", headerFilter: "input", formatter:function(cell, formatterParams, onRendered){
+                    var div = $().add("<div>");
+
+                    var link = $("<a />", {
+                        id: "link_" + cell.getValue(),
+                        name: "link_" + cell.getValue(),
+                        href: "/search/?id=" + cell.getValue(),
+                        text: cell.getValue(),
+                        target: "_blank"
+                    });
+
+                    div.append(link);
+
+                    return div.html();
+                }},
                 {title: "Type", field: "type", hozAlign: "left", headerFilter: "select", sorter: "string"},
                 {title: "Account", field: "account", hozAlign: "left", sorter: "string", headerFilter: "input"},
                 {title: "Account Alias", field: "accountAlias", hozAlign: "left", sorter: "string", headerFilter: "input"},
                 {title: "Region", field: "region", hozAlign: "left", sorter: "string", headerFilter: "input"},
-                {title: "Tags", field: "tags", hozAlign: "left", formatter:function(cell, formatterParams, onRendered){
-                    var $ul = $().add("<ul>");
+                {title: "Tags", field: "tags", hozAlign: "left", formatter:function(cell, formatterParams, onRendered) {
+                    var div = $().add("<div>");
+                    var ul = $("<ul>");
+
+                    div.append(ul);
 
                     $.each( cell.getValue(), function(id, tag) {
-                      $ul.append("<li>" + tag.Key + " = " + tag.Value + "</li>");
+                      ul.append("<li>" + tag.Key + " = " + tag.Value + "</li>");
                     });
 
-                    return $ul.html()
+                    return div.html();
                 }},
             ],
             ajaxResponse:function(url, params, response){
