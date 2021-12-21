@@ -55,8 +55,28 @@ func searchRoute(c *fiber.Ctx) error {
 	})
 }
 
+func listRoute(c *fiber.Ctx) error {
+	return c.Render("views/list", fiber.Map{})
+}
+
 func apiSearchRoute(c *fiber.Ctx) error {
 	ids := strings.Split(strings.Replace(c.Params("id"), "%2C", ",", -1), ",")
+
+	items := libs.Describe(awsRegions, ids, awsRoles, sess, accountAliasses, verbose)
+
+	c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSONCharsetUTF8)
+
+	if verbose {
+		log.Println(c.Params("id"))
+		log.Println(ids)
+		log.Println(items)
+	}
+
+	return json.NewEncoder(c.Response().BodyWriter()).Encode(items)
+}
+
+func apiListRoute(c *fiber.Ctx) error {
+	var ids []string
 
 	items := libs.Describe(awsRegions, ids, awsRoles, sess, accountAliasses, verbose)
 
@@ -137,7 +157,10 @@ func main() {
 
 	app.Get("/", mainRoute)
 	app.Get("/search", searchRoute)
+	app.Get("/list", listRoute)
+	app.Get("/api/search/", apiSearchRoute)
 	app.Get("/api/search/:id", apiSearchRoute)
+	app.Get("/api/list", apiListRoute)
 
 	app.Listen(viper.GetString("listen"))
 }

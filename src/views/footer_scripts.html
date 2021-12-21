@@ -1,0 +1,54 @@
+{{define "footer_scripts"}}
+
+	<script src="https://code.jquery.com/jquery-3.5.1.min.js" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+	<script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.0.8/dist/js/tabulator.min.js"></script>
+
+	<script type="text/javascript">
+    var setFilterValues = function(table, data, columnName, fieldName) {
+        var filterValues = [...new Set(data.map(item => item[fieldName]))];
+        filterValues.sort();
+        table.updateColumnDefinition(columnName, {headerFilter: "select", headerFilterPlaceholder: " ", headerFilterFunc:"in", headerFilterParams: {values: filterValues, multiselect:true}});
+    };
+
+    $( document ).ready(function() {
+
+        var table = new Tabulator("#data-table", {
+            height: 0.9 * $(window).height(), // 90% of window height in px
+            ajaxURL: ajaxURL,
+            layout: "fitColumns", //fit columns to width of table (optional)
+            pagination: true, //enable pagination.
+            paginationSizeSelector: [10, 25, 50, 100],
+            columns: [
+                {title: "ID", field: "id", headerFilter: "input"},
+                {title: "Type", field: "type", hozAlign: "left", headerFilter: "select", sorter: "string"},
+                {title: "Account", field: "account", hozAlign: "left", sorter: "string", headerFilter: "input"},
+                {title: "Account Alias", field: "accountAlias", hozAlign: "left", sorter: "string", headerFilter: "input"},
+                {title: "Region", field: "region", hozAlign: "left", sorter: "string", headerFilter: "input"},
+                {title: "Tags", field: "tags", hozAlign: "left", formatter:function(cell, formatterParams, onRendered){
+                    var $ul = $().add("<ul>");
+
+                    $.each( cell.getValue(), function(id, tag) {
+                      $ul.append("<li>" + tag.Key + " = " + tag.Value + "</li>");
+                    });
+
+                    return $ul.html()
+                }},
+            ],
+            ajaxResponse:function(url, params, response){
+
+                setFilterValues(table, response, "id", "id");
+                setFilterValues(table, response, "type", "type");
+                setFilterValues(table, response, "account", "account");
+                setFilterValues(table, response, "accountAlias", "accountAlias");
+                setFilterValues(table, response, "region", "region");
+
+                return response; //return the response data to tabulator
+            },
+        });
+    });
+</script>
+
+{{end}}

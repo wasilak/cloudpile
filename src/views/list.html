@@ -1,0 +1,17 @@
+{{ template "header" .}}
+
+<div class="container-fluid">
+            <div class="row">
+                <div class="col-sm">
+                    <div id="data-table" class="table-striped table-bordered table-hover"></div>
+                </div>
+            </div>
+        </div>
+
+{{ template "footer_scripts" .}}
+
+<script type="text/javascript">
+    var ajaxURL = "/api/list";
+</script>
+
+{{ template "footer" .}}

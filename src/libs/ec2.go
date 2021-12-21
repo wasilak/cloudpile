@@ -14,12 +14,12 @@ import (
 
 // Item type
 type Item struct {
-	ID           string
-	Type         string
-	Tags         []*ec2.Tag
-	Account      string
-	AccountAlias string
-	Region       string
+	ID           string     `json:"id"`
+	Type         string     `json:"type"`
+	Tags         []*ec2.Tag `json:"tags"`
+	Account      string     `json:"account"`
+	AccountAlias string     `json:"accountAlias"`
+	Region       string     `json:"region"`
 }
 
 // Items type
@@ -73,16 +73,25 @@ func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials, itemsChanne
 
 	awsRegion := aws.String(region)
 
+	// Create new EC2 client
+	ec2Svc := ec2.New(sess, &aws.Config{
+		Credentials: creds,
+		Region:      awsRegion,
+	})
+
+	if len(IDs) == 0 {
+		var curIDs []*string
+		items := describeEc2(ec2Svc, curIDs, accountID, accountAlias, verbose)
+		itemsChannel <- items
+
+		items = describeSg(ec2Svc, curIDs, accountID, accountAlias, verbose)
+		itemsChannel <- items
+	}
+
 	for _, id := range IDs {
 		awsID := aws.String(id)
 
 		var match bool
-
-		// Create new EC2 client
-		ec2Svc := ec2.New(sess, &aws.Config{
-			Credentials: creds,
-			Region:      awsRegion,
-		})
 
 		// EC2 instances
 		match, _ = regexp.MatchString("i-[a-zA-Z0-9_]+", id)
@@ -187,3 +196,8 @@ func describeEc2(ec2Svc *ec2.EC2, IDs []*string, account, accountAlias string, v
 
 	return items
 }
+
+// func listEc2(ec2Svc *ec2.EC2, account, accountAlias string, verbose bool) Items {
+// 	var instanceIDs []*string
+// 	return describeEc2(ec2Svc, instanceIDs, account, accountAlias, verbose)
+// }
