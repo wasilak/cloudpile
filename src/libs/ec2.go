@@ -1,7 +1,9 @@
 package libs
 
 import (
+	"fmt"
 	"log"
+	"net"
 	"regexp"
 	"sync"
 
@@ -20,13 +22,14 @@ type Item struct {
 	Account      string     `json:"account"`
 	AccountAlias string     `json:"accountAlias"`
 	Region       string     `json:"region"`
+	IP           string     `json:"ip"`
 }
 
 // Items type
 type Items []Item
 
 // Describe func
-func Describe(awsRegions, IDs, iamRoles []string, sess *session.Session, accountAliasses map[string]string, verbose bool) Items {
+func Describe(awsRegions, IDs, iamRoles []string, sess *session.Session, accountAliasses map[string]string, verbose bool, cacheInstance Cache) Items {
 
 	items := Items{}
 
@@ -57,7 +60,7 @@ func Describe(awsRegions, IDs, iamRoles []string, sess *session.Session, account
 				accountAlias = val
 			}
 
-			go runDescribe(&wg, creds, itemsChannel, sess, region, accountID, accountAlias, IDs, verbose)
+			go runDescribe(&wg, creds, itemsChannel, sess, region, accountID, accountAlias, IDs, verbose, cacheInstance)
 		}
 	}
 
@@ -72,7 +75,7 @@ func Describe(awsRegions, IDs, iamRoles []string, sess *session.Session, account
 	return items
 }
 
-func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials, itemsChannel chan Items, sess *session.Session, region, accountID, accountAlias string, IDs []string, verbose bool) {
+func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials, itemsChannel chan Items, sess *session.Session, region, accountID, accountAlias string, IDs []string, verbose bool, cacheInstance Cache) {
 	defer wg.Done()
 
 	awsRegion := aws.String(region)
@@ -83,96 +86,176 @@ func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials, itemsChanne
 		Region:      awsRegion,
 	})
 
-	if len(IDs) == 0 {
-		var curIDs []*string
-		items := describeEc2(ec2Svc, curIDs, accountID, accountAlias, verbose)
-		itemsChannel <- items
+	items := describeEc2(ec2Svc, IDs, accountID, accountAlias, verbose, awsRegion, cacheInstance)
+	itemsChannel <- items
 
-		items = describeSg(ec2Svc, curIDs, accountID, accountAlias, verbose)
-		itemsChannel <- items
+	// items = describeSg(ec2Svc, IDs, accountID, accountAlias, verbose, cacheInstance)
+	// itemsChannel <- items
+
+	// for _, id := range IDs {
+
+	// 	var match bool
+
+	// 	// EC2 instances
+	// 	match, _ = regexp.MatchString("i-[a-zA-Z0-9_]+", id)
+	// 	if match {
+	// 		items := describeEc2(ec2Svc, id, accountID, accountAlias, verbose)
+	// 		itemsChannel <- items
+	// 	}
+
+	// 	// Security Groups
+	// 	match, _ = regexp.MatchString("sg-[a-zA-Z0-9_]+", id)
+	// 	if match {
+	// 		items := describeSg(ec2Svc, awsID, accountID, accountAlias, verbose)
+	// 		itemsChannel <- items
+	// 	}
+
+	// }
+}
+
+// func describeSg(ec2Svc *ec2.EC2, IDs []string, account, accountAlias string, verbose bool, cacheInstance Cache) Items {
+// 	var items []Item
+
+// 	input := &ec2.DescribeSecurityGroupsInput{
+// 		GroupIds: IDs,
+// 	}
+
+// 	// Call to get detailed information on each instance
+// 	result, err := ec2Svc.DescribeSecurityGroups(input)
+// 	if err != nil {
+// 		match, _ := regexp.MatchString("does not exist", err.Error())
+// 		if verbose || !match {
+// 			log.Println("Error", err)
+// 		}
+// 		return items
+// 	}
+
+// 	for _, sg := range result.SecurityGroups {
+
+// 		var tags []*ec2.Tag
+// 		for _, tag := range sg.Tags {
+// 			tags = append(tags, tag)
+// 		}
+
+// 		item := Item{
+// 			ID:           *sg.GroupId,
+// 			Type:         "Security Group",
+// 			Tags:         tags,
+// 			Account:      account,
+// 			AccountAlias: accountAlias,
+// 			Region:       *ec2Svc.Config.Region,
+// 		}
+
+// 		items = append(items, item)
+// 	}
+
+// 	return items
+// }
+
+func recoverFullName(instance *ec2.Instance) {
+	if r := recover(); r != nil {
+		fmt.Println("recovered from ", r)
+		log.Printf("%+v", instance)
 	}
+}
 
-	for _, id := range IDs {
-		awsID := aws.String(id)
+func describeEc2(ec2Svc *ec2.EC2, id []string, account, accountAlias string, verbose bool, awsRegion *string, cacheInstance Cache) Items {
+	var items []Item
+	var resourceIDs []string
+	var resourceIPs []string
+	var match bool
+	var found bool
+	var err error
 
-		var match bool
+	var result *ec2.DescribeInstancesOutput
 
+	cacheKey := fmt.Sprintf("list_ec2_%s_%s", accountAlias, *awsRegion)
+
+	for _, id := range id {
 		// EC2 instances
 		match, _ = regexp.MatchString("i-[a-zA-Z0-9_]+", id)
 		if match {
-			items := describeEc2(ec2Svc, []*string{awsID}, accountID, accountAlias, verbose)
-			itemsChannel <- items
+			resourceIDs = append(resourceIDs, id)
 		}
 
-		// Security Groups
-		match, _ = regexp.MatchString("sg-[a-zA-Z0-9_]+", id)
-		if match {
-			items := describeSg(ec2Svc, []*string{awsID}, accountID, accountAlias, verbose)
-			itemsChannel <- items
+		if net.ParseIP(id) != nil {
+			resourceIPs = append(resourceIPs, id)
 		}
-
-	}
-}
-
-func describeSg(ec2Svc *ec2.EC2, IDs []*string, account, accountAlias string, verbose bool) Items {
-	var items []Item
-
-	input := &ec2.DescribeSecurityGroupsInput{
-		GroupIds: IDs,
 	}
 
-	// Call to get detailed information on each instance
-	result, err := ec2Svc.DescribeSecurityGroups(input)
-	if err != nil {
-		match, _ := regexp.MatchString("does not exist", err.Error())
-		if verbose || !match {
-			log.Println("Error", err)
+	if cacheInstance.Enabled {
+
+		var resultTmp interface{}
+
+		resultTmp, found = cacheInstance.Cache.Get(cacheKey)
+
+		if !found {
+			result, err = ec2Svc.DescribeInstances(nil)
+
+			if err != nil {
+				match, _ := regexp.MatchString("does not exist", err.Error())
+				if verbose || !match {
+					log.Println("Error", err)
+				}
+			}
+
+			// set a value with a cost of 1
+			cacheInstance.Cache.SetWithTTL(cacheKey, result, 1, cacheInstance.TTL)
+
+			// wait for value to pass through buffers
+			cacheInstance.Cache.Wait()
+		} else {
+			result = resultTmp.(*ec2.DescribeInstancesOutput)
 		}
-		return items
-	}
 
-	for _, sg := range result.SecurityGroups {
-
-		var tags []*ec2.Tag
-		for _, tag := range sg.Tags {
-			tags = append(tags, tag)
+	} else {
+		// Call to get detailed information on each instance
+		result, err = ec2Svc.DescribeInstances(nil)
+		if err != nil {
+			match, _ := regexp.MatchString("does not exist", err.Error())
+			if verbose || !match {
+				log.Println("Error", err)
+			}
 		}
-
-		item := Item{
-			ID:           *sg.GroupId,
-			Type:         "Security Group",
-			Tags:         tags,
-			Account:      account,
-			AccountAlias: accountAlias,
-			Region:       *ec2Svc.Config.Region,
-		}
-
-		items = append(items, item)
-	}
-
-	return items
-}
-
-func describeEc2(ec2Svc *ec2.EC2, IDs []*string, account, accountAlias string, verbose bool) Items {
-	var items []Item
-
-	input := &ec2.DescribeInstancesInput{
-		InstanceIds: IDs,
-	}
-
-	// Call to get detailed information on each instance
-	result, err := ec2Svc.DescribeInstances(input)
-
-	if err != nil {
-		match, _ := regexp.MatchString("does not exist", err.Error())
-		if verbose || !match {
-			log.Println("Error", err)
-		}
-		return items
 	}
 
 	for _, reservation := range result.Reservations {
 		for _, instance := range reservation.Instances {
+
+			privateIP := ""
+
+			if instance.PrivateIpAddress != nil {
+				privateIP = *instance.PrivateIpAddress
+			}
+
+			// defer recoverFullName(instance)
+			if len(resourceIDs) > 0 || len(resourceIPs) > 0 {
+				hit := false
+
+				for _, id := range resourceIDs {
+					if *instance.InstanceId == id {
+						hit = true
+					}
+
+					if hit == true {
+						break
+					}
+				}
+
+				for _, ip := range resourceIPs {
+					if privateIP == ip {
+						hit = true
+					}
+
+					if hit == true {
+						break
+					}
+				}
+
+				if hit == false {
+					continue
+				}
+			}
 
 			var tags []*ec2.Tag
 			for _, tag := range instance.Tags {
@@ -186,6 +269,7 @@ func describeEc2(ec2Svc *ec2.EC2, IDs []*string, account, accountAlias string, v
 				Account:      account,
 				AccountAlias: accountAlias,
 				Region:       *ec2Svc.Config.Region,
+				IP:           privateIP,
 			}
 
 			items = append(items, item)

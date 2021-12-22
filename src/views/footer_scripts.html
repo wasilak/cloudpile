@@ -41,6 +41,26 @@
                 {title: "Account", field: "account", hozAlign: "left", sorter: "string", headerFilter: "input"},
                 {title: "Account Alias", field: "accountAlias", hozAlign: "left", sorter: "string", headerFilter: "input"},
                 {title: "Region", field: "region", hozAlign: "left", sorter: "string", headerFilter: "input"},
+                {title: "Private IP", field: "ip", hozAlign: "left", sorter: "string", headerFilter: "input", formatter:function(cell, formatterParams, onRendered){
+
+                    if (cell.getValue() == "") {
+                        return cell.getValue();
+                    }
+
+                    var div = $().add("<div>");
+
+                    var link = $("<a />", {
+                        id: "link_" + cell.getValue(),
+                        name: "link_" + cell.getValue(),
+                        href: "ssh://" + cell.getValue(),
+                        text: "SSH",
+                        target: "_blank"
+                    });
+
+                    div.append(link);
+
+                    return cell.getValue() + " [" + div.html() + "]";
+                }},
                 {title: "Tags", field: "tags", hozAlign: "left", formatter:function(cell, formatterParams, onRendered) {
                     var div = $().add("<div>");
                     var ul = $("<ul>");
@@ -55,6 +75,10 @@
                 }},
             ],
             ajaxResponse:function(url, params, response){
+
+                if (response == null) {
+                    return [];
+                }
 
                 setFilterValues(table, response, "id", "id");
                 setFilterValues(table, response, "type", "type");
