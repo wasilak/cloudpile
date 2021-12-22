@@ -48,6 +48,10 @@ func mainRoute(c *fiber.Ctx) error {
 	return c.Render("views/main", fiber.Map{})
 }
 
+func configRoute(c *fiber.Ctx) error {
+	return json.NewEncoder(c.Response().BodyWriter()).Encode(viper.GetStringMap("aws"))
+}
+
 func searchRoute(c *fiber.Ctx) error {
 	ids := strings.Split(strings.Replace(c.Query("id"), "%2C", ",", -1), ",")
 
@@ -179,6 +183,7 @@ func main() {
 	app.Get("/api/search/", apiSearchRoute)
 	app.Get("/api/search/:id", apiSearchRoute)
 	app.Get("/api/list", apiListRoute)
+	app.Get("/api/config", configRoute)
 
 	app.Listen(viper.GetString("listen"))
 }
