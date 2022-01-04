@@ -136,6 +136,8 @@ func describeSg(ec2Svc *ec2.EC2, IDs []string, account, accountAlias string, ver
 				}
 			}
 
+			cacheInstance.Cache.Del(cacheKey)
+
 			// set a value with a cost of 1
 			cacheInstance.Cache.Set(cacheKey, result, 1)
 
@@ -243,6 +245,8 @@ func describeEc2(ec2Svc *ec2.EC2, IDs []string, account, accountAlias string, ve
 					log.Println("Error", err)
 				}
 			}
+
+			cacheInstance.Cache.Del(cacheKey)
 
 			// set a value with a cost of 1
 			cacheInstance.Cache.Set(cacheKey, result, 1)
