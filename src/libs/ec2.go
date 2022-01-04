@@ -122,7 +122,7 @@ func describeSg(ec2Svc *ec2.EC2, IDs []string, account, accountAlias string, ver
 		resultTmp, found = cacheInstance.Cache.Get(cacheKey)
 
 		if !forceRefresh && !found {
-			log.Println("Cache not yet initialized")
+			log.Println(cacheKey, "Cache not yet initialized")
 			return items
 		}
 
@@ -230,7 +230,7 @@ func describeEc2(ec2Svc *ec2.EC2, IDs []string, account, accountAlias string, ve
 		resultTmp, found = cacheInstance.Cache.Get(cacheKey)
 
 		if !forceRefresh && !found {
-			log.Println("Cache not yet initialized")
+			log.Println(cacheKey, "Cache not yet initialized")
 			return items
 		}
 

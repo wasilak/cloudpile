@@ -175,8 +175,10 @@ func main() {
 
 	engine := html.NewFileSystem(http.FS(views), ".html")
 
-	// Debug will print each template that is parsed, good for debugging
-	engine.Debug(true)
+	if verbose == true {
+		// Debug will print each template that is parsed, good for debugging
+		engine.Debug(true)
+	}
 
 	// engine.Layout("content")
 

@@ -24,9 +24,9 @@ func InitCache(enabled bool, TTLString string) Cache {
 	}
 
 	cacheInstance.Cache, cacheErr = ristretto.NewCache(&ristretto.Config{
-		NumCounters: 1000,
-		MaxCost:     100,
-		BufferItems: 64, // number of keys per Get buffer.
+		NumCounters: 1e7,     // number of keys to track frequency of (10M).
+		MaxCost:     1 << 28, // maximum cost of cache (256mb).
+		BufferItems: 64,      // number of keys per Get buffer.
 	})
 
 	if cacheErr != nil {
