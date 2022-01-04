@@ -62,8 +62,13 @@ func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]str
 		return items
 	}
 
-	filteredItems = append(filteredItems, filterEc2(items, IDs)...)
-	filteredItems = append(filteredItems, filterSg(items, IDs)...)
+	for _, item := range filterEc2(items, IDs) {
+		filteredItems = append(filteredItems, item)
+	}
+
+	for _, item := range filterSg(items, IDs) {
+		filteredItems = append(filteredItems, item)
+	}
 
 	return filteredItems
 }

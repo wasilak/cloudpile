@@ -1,5 +1,7 @@
 ---
 listen: :3000
+debug: false
+verbose: false
 aws:
   iam_role_arn: []
   account_aliasses: []
