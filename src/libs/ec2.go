@@ -31,11 +31,47 @@ type Items []Item
 // Describe func
 func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]string, verbose bool, cacheInstance Cache, forceRefresh bool) Items {
 
+	items := Items{}
+	filteredItems := Items{}
+	var result interface{}
+
+	if cacheInstance.Enabled {
+
+		var found bool
+
+		cacheKey := fmt.Sprintf("app_cache")
+
+		result, found = cacheInstance.Cache.Get(cacheKey)
+
+		if !forceRefresh && !found {
+			log.Println("Cache not yet initialized")
+			return items
+		}
+
+		if found {
+			items = result.(Items)
+		}
+
+		if forceRefresh {
+			items = refreshCache(awsRegions, iamRoles, accountAliasses, verbose, cacheInstance, forceRefresh, cacheKey)
+		}
+
+	}
+
+	if len(IDs) == 0 {
+		return items
+	}
+
+	filteredItems = append(filteredItems, filterEc2(items, IDs)...)
+	filteredItems = append(filteredItems, filterSg(items, IDs)...)
+
+	return filteredItems
+}
+
+func refreshCache(awsRegions, iamRoles []string, accountAliasses map[string]string, verbose bool, cacheInstance Cache, forceRefresh bool, cacheKey string) Items {
 	var sess *session.Session
 
 	items := Items{}
-
-	sess = session.Must(session.NewSession())
 
 	var wg sync.WaitGroup
 
@@ -55,6 +91,7 @@ func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]str
 	for _, iamRole := range iamRoles {
 		for _, region := range awsRegions {
 			wg.Add(1)
+			sess = session.Must(session.NewSession())
 			creds := stscreds.NewCredentials(sess, iamRole)
 			accountID := getAccountIdFromRoleARN(iamRole)
 
@@ -64,7 +101,7 @@ func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]str
 				accountAlias = val
 			}
 
-			go runDescribe(&wg, creds, itemsChannel, sess, region, accountID, accountAlias, IDs, verbose, cacheInstance, forceRefresh)
+			go runDescribe(&wg, creds, itemsChannel, sess, region, accountID, accountAlias, verbose, cacheInstance, forceRefresh)
 		}
 	}
 
@@ -72,10 +109,16 @@ func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]str
 		items = append(items, item...)
 	}
 
+	// set a value with a cost of 1
+	cacheInstance.Cache.Set(cacheKey, items, 1)
+
+	// wait for value to pass through buffers
+	cacheInstance.Cache.Wait()
+
 	return items
 }
 
-func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials, itemsChannel chan Items, sess *session.Session, region, accountID, accountAlias string, IDs []string, verbose bool, cacheInstance Cache, forceRefresh bool) {
+func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials, itemsChannel chan Items, sess *session.Session, region, accountID, accountAlias string, verbose bool, cacheInstance Cache, forceRefresh bool) {
 	defer wg.Done()
 
 	awsRegion := aws.String(region)
@@ -86,97 +129,25 @@ func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials, itemsChanne
 		Region:      awsRegion,
 	})
 
-	items := describeEc2(ec2Svc, IDs, accountID, accountAlias, verbose, awsRegion, cacheInstance, forceRefresh)
-	itemsChannel <- items
+	itemsChannel <- describeEc2(ec2Svc, verbose, accountID, accountAlias, awsRegion)
 
-	items = describeSg(ec2Svc, IDs, accountID, accountAlias, verbose, awsRegion, cacheInstance, forceRefresh)
-	itemsChannel <- items
+	itemsChannel <- describeSg(ec2Svc, verbose, accountID, accountAlias, awsRegion)
 }
 
-func describeSg(ec2Svc *ec2.EC2, IDs []string, account, accountAlias string, verbose bool, awsRegion *string, cacheInstance Cache, forceRefresh bool) Items {
+func describeSg(ec2Svc *ec2.EC2, verbose bool, account, accountAlias string, awsRegion *string) Items {
 	var items []Item
-	var resourceIDs []string
-	var match bool
-	var found bool
 	var err error
 	var result *ec2.DescribeSecurityGroupsOutput
 
-	cacheKey := fmt.Sprintf("list_sg_%s_%s", accountAlias, *awsRegion)
-
-	for _, id := range IDs {
-		// EC2 instances
-		match, _ = regexp.MatchString("sg-[a-zA-Z0-9_]+", id)
-		if match {
-			resourceIDs = append(resourceIDs, id)
-		}
-	}
-
-	if len(IDs) != 0 && len(resourceIDs) == 0 {
-		return items
-	}
-
-	if cacheInstance.Enabled {
-
-		var resultTmp interface{}
-
-		resultTmp, found = cacheInstance.Cache.Get(cacheKey)
-
-		if !forceRefresh && !found {
-			log.Println(cacheKey, "Cache not yet initialized")
-			return items
-		}
-
-		if forceRefresh {
-			result, err = ec2Svc.DescribeSecurityGroups(nil)
-
-			if err != nil {
-				match, _ := regexp.MatchString("does not exist", err.Error())
-				if verbose || !match {
-					log.Println("Error", err)
-				}
-			}
-
-			cacheInstance.Cache.Del(cacheKey)
-
-			// set a value with a cost of 1
-			cacheInstance.Cache.Set(cacheKey, result, 1)
-
-			// wait for value to pass through buffers
-			cacheInstance.Cache.Wait()
-		} else {
-			result = resultTmp.(*ec2.DescribeSecurityGroupsOutput)
-		}
-
-	} else {
-		// Call to get detailed information on each instance
-		result, err = ec2Svc.DescribeSecurityGroups(nil)
-		if err != nil {
-			match, _ := regexp.MatchString("does not exist", err.Error())
-			if verbose || !match {
-				log.Println("Error", err)
-			}
+	result, err = ec2Svc.DescribeSecurityGroups(nil)
+	if err != nil {
+		match, _ := regexp.MatchString("does not exist", err.Error())
+		if verbose || !match {
+			log.Println("Error", err)
 		}
 	}
 
 	for _, sg := range result.SecurityGroups {
-
-		if len(resourceIDs) > 0 {
-			hit := false
-
-			for _, id := range resourceIDs {
-				if *sg.GroupId == id {
-					hit = true
-				}
-
-				if hit == true {
-					break
-				}
-			}
-
-			if hit == false {
-				continue
-			}
-		}
 
 		var tags []*ec2.Tag
 		for _, tag := range sg.Tags {
@@ -189,7 +160,7 @@ func describeSg(ec2Svc *ec2.EC2, IDs []string, account, accountAlias string, ver
 			Tags:         tags,
 			Account:      account,
 			AccountAlias: accountAlias,
-			Region:       *ec2Svc.Config.Region,
+			Region:       *awsRegion,
 		}
 
 		items = append(items, item)
@@ -198,73 +169,17 @@ func describeSg(ec2Svc *ec2.EC2, IDs []string, account, accountAlias string, ver
 	return items
 }
 
-func describeEc2(ec2Svc *ec2.EC2, IDs []string, account, accountAlias string, verbose bool, awsRegion *string, cacheInstance Cache, forceRefresh bool) Items {
+func describeEc2(ec2Svc *ec2.EC2, verbose bool, account, accountAlias string, awsRegion *string) Items {
 	var items []Item
-	var resourceIDs []string
-	var resourceIPs []string
-	var match bool
-	var found bool
 	var err error
 	var result *ec2.DescribeInstancesOutput
 
-	cacheKey := fmt.Sprintf("list_ec2_%s_%s", accountAlias, *awsRegion)
-
-	for _, id := range IDs {
-		// EC2 instances
-		match, _ = regexp.MatchString("i-[a-zA-Z0-9_]+", id)
-		if match {
-			resourceIDs = append(resourceIDs, id)
-		}
-
-		if net.ParseIP(id) != nil {
-			resourceIPs = append(resourceIPs, id)
-		}
-	}
-
-	if len(IDs) != 0 && len(resourceIDs) == 0 && len(resourceIPs) == 0 {
-		return items
-	}
-
-	if cacheInstance.Enabled {
-
-		var resultTmp interface{}
-
-		resultTmp, found = cacheInstance.Cache.Get(cacheKey)
-
-		if !forceRefresh && !found {
-			log.Println(cacheKey, "Cache not yet initialized")
-			return items
-		}
-
-		if forceRefresh {
-			result, err = ec2Svc.DescribeInstances(nil)
-
-			if err != nil {
-				match, _ := regexp.MatchString("does not exist", err.Error())
-				if verbose || !match {
-					log.Println("Error", err)
-				}
-			}
-
-			cacheInstance.Cache.Del(cacheKey)
-
-			// set a value with a cost of 1
-			cacheInstance.Cache.Set(cacheKey, result, 1)
-
-			// wait for value to pass through buffers
-			cacheInstance.Cache.Wait()
-		} else {
-			result = resultTmp.(*ec2.DescribeInstancesOutput)
-		}
-
-	} else {
-		// Call to get detailed information on each instance
-		result, err = ec2Svc.DescribeInstances(nil)
-		if err != nil {
-			match, _ := regexp.MatchString("does not exist", err.Error())
-			if verbose || !match {
-				log.Println("Error", err)
-			}
+	// Call to get detailed information on each instance
+	result, err = ec2Svc.DescribeInstances(nil)
+	if err != nil {
+		match, _ := regexp.MatchString("does not exist", err.Error())
+		if verbose || !match {
+			log.Println("Error", err)
 		}
 	}
 
@@ -275,34 +190,6 @@ func describeEc2(ec2Svc *ec2.EC2, IDs []string, account, accountAlias string, ve
 
 			if instance.PrivateIpAddress != nil {
 				privateIP = *instance.PrivateIpAddress
-			}
-
-			if len(resourceIDs) > 0 || len(resourceIPs) > 0 {
-				hit := false
-
-				for _, id := range resourceIDs {
-					if *instance.InstanceId == id {
-						hit = true
-					}
-
-					if hit == true {
-						break
-					}
-				}
-
-				for _, ip := range resourceIPs {
-					if privateIP == ip {
-						hit = true
-					}
-
-					if hit == true {
-						break
-					}
-				}
-
-				if hit == false {
-					continue
-				}
 			}
 
 			var tags []*ec2.Tag
@@ -325,4 +212,105 @@ func describeEc2(ec2Svc *ec2.EC2, IDs []string, account, accountAlias string, ve
 	}
 
 	return items
+}
+
+func filterEc2(items Items, IDs []string) Items {
+	var filteredItems []Item
+	var resourceIDs []string
+	var resourceIPs []string
+	var match bool
+
+	for _, id := range IDs {
+		// EC2 instances
+		match, _ = regexp.MatchString("i-[a-zA-Z0-9_]+", id)
+		if match {
+			resourceIDs = append(resourceIDs, id)
+		}
+
+		if net.ParseIP(id) != nil {
+			resourceIPs = append(resourceIPs, id)
+		}
+	}
+
+	if len(IDs) != 0 && len(resourceIDs) == 0 && len(resourceIPs) == 0 {
+		return items
+	}
+
+	for _, item := range items {
+
+		if len(resourceIDs) > 0 || len(resourceIPs) > 0 {
+			hit := false
+
+			for _, id := range resourceIDs {
+				if item.ID == id {
+					hit = true
+				}
+
+				if hit == true {
+					break
+				}
+			}
+
+			for _, ip := range resourceIPs {
+				if item.IP == ip {
+					hit = true
+				}
+
+				if hit == true {
+					break
+				}
+			}
+
+			if hit == false {
+				continue
+			}
+		}
+
+		filteredItems = append(filteredItems, item)
+	}
+
+	return filteredItems
+}
+
+func filterSg(items Items, IDs []string) Items {
+	var filteredItems []Item
+	var resourceIDs []string
+	var match bool
+
+	for _, id := range IDs {
+		// EC2 instances
+		match, _ = regexp.MatchString("sg-[a-zA-Z0-9_]+", id)
+		if match {
+			resourceIDs = append(resourceIDs, id)
+		}
+	}
+
+	if len(IDs) != 0 && len(resourceIDs) == 0 {
+		return items
+	}
+
+	for _, item := range items {
+
+		if len(resourceIDs) > 0 {
+			hit := false
+
+			for _, id := range resourceIDs {
+				if item.ID == id {
+					hit = true
+				}
+
+				if hit == true {
+					break
+				}
+			}
+
+			if hit == false {
+				continue
+			}
+		}
+
+		filteredItems = append(filteredItems, item)
+	}
+
+	return filteredItems
 }

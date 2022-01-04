@@ -14,6 +14,8 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v2/middleware/monitor"
+	"github.com/gofiber/fiber/v2/middleware/pprof"
 	"github.com/gofiber/template/html"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -24,6 +26,7 @@ var awsRegions []string
 var awsRoles []string
 var accountAliasses map[string]string
 var verbose bool
+var debug bool
 
 //go:embed views
 var views embed.FS
@@ -137,6 +140,7 @@ func main() {
 	awsRoles = viper.GetStringSlice("aws.iam_role_arn")
 	accountAliasses = viper.GetStringMapString("aws.account_aliasses")
 	verbose = viper.GetBool("verbose")
+	debug = viper.GetBool("debug")
 
 	if verbose == true {
 		log.Println(viper.AllSettings())
@@ -175,17 +179,19 @@ func main() {
 
 	engine := html.NewFileSystem(http.FS(views), ".html")
 
-	if verbose == true {
+	if debug == true {
 		// Debug will print each template that is parsed, good for debugging
 		engine.Debug(true)
 	}
-
-	// engine.Layout("content")
 
 	app := fiber.New(fiber.Config{
 		Views:                 engine,
 		DisableStartupMessage: false,
 	})
+
+	if debug == true {
+		app.Use(pprof.New())
+	}
 
 	app.Use(compress.New())
 
@@ -197,8 +203,6 @@ func main() {
 	if verbose == true {
 		engine.Reload(true) // Optional. Default: false
 	}
-
-	// sess = session.Must(session.NewSession())
 
 	appLogger := logger.New(logger.Config{
 		Format: `${pid} ${locals:requestid} ${status} - ${method} ${path}​ ${query}​ ${queryParams}​` + "\n",
@@ -212,6 +216,10 @@ func main() {
 	app.Get("/api/search/:id", apiSearchRoute)
 	app.Get("/api/list", apiListRoute)
 	app.Get("/api/config", configRoute)
+
+	if debug == true {
+		app.Get("/dashboard", monitor.New())
+	}
 
 	app.Listen(viper.GetString("listen"))
 }
