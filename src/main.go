@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
@@ -23,7 +23,6 @@ import (
 var awsRegions []string
 var awsRoles []string
 var accountAliasses map[string]string
-var sess *session.Session
 var verbose bool
 
 //go:embed views
@@ -84,7 +83,7 @@ func apiSearchRoute(c *fiber.Ctx) error {
 	}
 
 	if len(ids) > 0 {
-		items = libs.Describe(awsRegions, ids, awsRoles, sess, accountAliasses, verbose, cacheInstance)
+		items = libs.Describe(awsRegions, ids, awsRoles, accountAliasses, verbose, cacheInstance, false)
 	}
 
 	c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSONCharsetUTF8)
@@ -96,7 +95,7 @@ func apiListRoute(c *fiber.Ctx) error {
 	var ids []string
 	var items interface{}
 
-	items = libs.Describe(awsRegions, ids, awsRoles, sess, accountAliasses, verbose, cacheInstance)
+	items = libs.Describe(awsRegions, ids, awsRoles, accountAliasses, verbose, cacheInstance, false)
 
 	c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSONCharsetUTF8)
 
@@ -145,6 +144,33 @@ func main() {
 
 	if viper.GetBool("cache.enabled") {
 		cacheInstance = libs.InitCache(viper.GetBool("cache.enabled"), viper.GetString("cache.TTL"))
+
+		ticker := time.NewTicker(cacheInstance.TTL)
+
+		if verbose == true {
+			log.Println("Initial cache refresh...")
+		}
+
+		// time.Sleep(5 * time.Second)
+		libs.Describe(awsRegions, []string{}, awsRoles, accountAliasses, verbose, cacheInstance, true)
+
+		if verbose == true {
+			log.Println("Cache refresh done")
+		}
+
+		go func() {
+			for range ticker.C {
+				if verbose == true {
+					log.Println("Refreshing cache...")
+				}
+				libs.Describe(awsRegions, []string{}, awsRoles, accountAliasses, verbose, cacheInstance, true)
+				if verbose == true {
+					log.Println("Cache refresh done")
+				}
+			}
+		}()
+
+		defer ticker.Stop()
 	}
 
 	engine := html.NewFileSystem(http.FS(views), ".html")
@@ -170,7 +196,7 @@ func main() {
 		engine.Reload(true) // Optional. Default: false
 	}
 
-	sess = session.Must(session.NewSession())
+	// sess = session.Must(session.NewSession())
 
 	appLogger := logger.New(logger.Config{
 		Format: `${pid} ${locals:requestid} ${status} - ${method} ${path}​ ${query}​ ${queryParams}​` + "\n",

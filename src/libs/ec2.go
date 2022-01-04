@@ -29,9 +29,13 @@ type Item struct {
 type Items []Item
 
 // Describe func
-func Describe(awsRegions, IDs, iamRoles []string, sess *session.Session, accountAliasses map[string]string, verbose bool, cacheInstance Cache) Items {
+func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]string, verbose bool, cacheInstance Cache, forceRefresh bool) Items {
+
+	var sess *session.Session
 
 	items := Items{}
+
+	sess = session.Must(session.NewSession())
 
 	var wg sync.WaitGroup
 
@@ -60,7 +64,7 @@ func Describe(awsRegions, IDs, iamRoles []string, sess *session.Session, account
 				accountAlias = val
 			}
 
-			go runDescribe(&wg, creds, itemsChannel, sess, region, accountID, accountAlias, IDs, verbose, cacheInstance)
+			go runDescribe(&wg, creds, itemsChannel, sess, region, accountID, accountAlias, IDs, verbose, cacheInstance, forceRefresh)
 		}
 	}
 
@@ -71,7 +75,7 @@ func Describe(awsRegions, IDs, iamRoles []string, sess *session.Session, account
 	return items
 }
 
-func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials, itemsChannel chan Items, sess *session.Session, region, accountID, accountAlias string, IDs []string, verbose bool, cacheInstance Cache) {
+func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials, itemsChannel chan Items, sess *session.Session, region, accountID, accountAlias string, IDs []string, verbose bool, cacheInstance Cache, forceRefresh bool) {
 	defer wg.Done()
 
 	awsRegion := aws.String(region)
@@ -82,14 +86,14 @@ func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials, itemsChanne
 		Region:      awsRegion,
 	})
 
-	items := describeEc2(ec2Svc, IDs, accountID, accountAlias, verbose, awsRegion, cacheInstance)
+	items := describeEc2(ec2Svc, IDs, accountID, accountAlias, verbose, awsRegion, cacheInstance, forceRefresh)
 	itemsChannel <- items
 
-	items = describeSg(ec2Svc, IDs, accountID, accountAlias, verbose, awsRegion, cacheInstance)
+	items = describeSg(ec2Svc, IDs, accountID, accountAlias, verbose, awsRegion, cacheInstance, forceRefresh)
 	itemsChannel <- items
 }
 
-func describeSg(ec2Svc *ec2.EC2, IDs []string, account, accountAlias string, verbose bool, awsRegion *string, cacheInstance Cache) Items {
+func describeSg(ec2Svc *ec2.EC2, IDs []string, account, accountAlias string, verbose bool, awsRegion *string, cacheInstance Cache, forceRefresh bool) Items {
 	var items []Item
 	var resourceIDs []string
 	var match bool
@@ -117,7 +121,12 @@ func describeSg(ec2Svc *ec2.EC2, IDs []string, account, accountAlias string, ver
 
 		resultTmp, found = cacheInstance.Cache.Get(cacheKey)
 
-		if !found {
+		if !forceRefresh && !found {
+			log.Println("Cache not yet initialized")
+			return items
+		}
+
+		if forceRefresh {
 			result, err = ec2Svc.DescribeSecurityGroups(nil)
 
 			if err != nil {
@@ -128,7 +137,7 @@ func describeSg(ec2Svc *ec2.EC2, IDs []string, account, accountAlias string, ver
 			}
 
 			// set a value with a cost of 1
-			cacheInstance.Cache.SetWithTTL(cacheKey, result, 1, cacheInstance.TTL)
+			cacheInstance.Cache.Set(cacheKey, result, 1)
 
 			// wait for value to pass through buffers
 			cacheInstance.Cache.Wait()
@@ -187,7 +196,7 @@ func describeSg(ec2Svc *ec2.EC2, IDs []string, account, accountAlias string, ver
 	return items
 }
 
-func describeEc2(ec2Svc *ec2.EC2, IDs []string, account, accountAlias string, verbose bool, awsRegion *string, cacheInstance Cache) Items {
+func describeEc2(ec2Svc *ec2.EC2, IDs []string, account, accountAlias string, verbose bool, awsRegion *string, cacheInstance Cache, forceRefresh bool) Items {
 	var items []Item
 	var resourceIDs []string
 	var resourceIPs []string
@@ -220,7 +229,12 @@ func describeEc2(ec2Svc *ec2.EC2, IDs []string, account, accountAlias string, ve
 
 		resultTmp, found = cacheInstance.Cache.Get(cacheKey)
 
-		if !found {
+		if !forceRefresh && !found {
+			log.Println("Cache not yet initialized")
+			return items
+		}
+
+		if forceRefresh {
 			result, err = ec2Svc.DescribeInstances(nil)
 
 			if err != nil {
@@ -231,7 +245,7 @@ func describeEc2(ec2Svc *ec2.EC2, IDs []string, account, accountAlias string, ve
 			}
 
 			// set a value with a cost of 1
-			cacheInstance.Cache.SetWithTTL(cacheKey, result, 1, cacheInstance.TTL)
+			cacheInstance.Cache.Set(cacheKey, result, 1)
 
 			// wait for value to pass through buffers
 			cacheInstance.Cache.Wait()
