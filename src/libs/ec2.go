@@ -62,13 +62,9 @@ func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]str
 		return items
 	}
 
-	for _, item := range filterEc2(items, IDs) {
-		filteredItems = append(filteredItems, item)
-	}
+	filteredItems = append(filteredItems, filterEc2(items, IDs)...)
 
-	for _, item := range filterSg(items, IDs) {
-		filteredItems = append(filteredItems, item)
-	}
+	filteredItems = append(filteredItems, filterSg(items, IDs)...)
 
 	return filteredItems
 }
@@ -238,37 +234,35 @@ func filterEc2(items Items, IDs []string) Items {
 	}
 
 	if len(IDs) != 0 && len(resourceIDs) == 0 && len(resourceIPs) == 0 {
-		return items
+		return Items{}
 	}
 
 	for _, item := range items {
 
-		if len(resourceIDs) > 0 || len(resourceIPs) > 0 {
-			hit := false
+		hit := false
 
-			for _, id := range resourceIDs {
-				if item.ID == id {
-					hit = true
-				}
-
-				if hit == true {
-					break
-				}
+		for _, id := range resourceIDs {
+			if item.ID == id {
+				hit = true
 			}
 
-			for _, ip := range resourceIPs {
-				if item.IP == ip {
-					hit = true
-				}
+			if hit == true {
+				break
+			}
+		}
 
-				if hit == true {
-					break
-				}
+		for _, ip := range resourceIPs {
+			if item.IP == ip {
+				hit = true
 			}
 
-			if hit == false {
-				continue
+			if hit == true {
+				break
 			}
+		}
+
+		if hit == false {
+			continue
 		}
 
 		filteredItems = append(filteredItems, item)
@@ -283,7 +277,6 @@ func filterSg(items Items, IDs []string) Items {
 	var match bool
 
 	for _, id := range IDs {
-		// EC2 instances
 		match, _ = regexp.MatchString("sg-[a-zA-Z0-9_]+", id)
 		if match {
 			resourceIDs = append(resourceIDs, id)
@@ -291,30 +284,16 @@ func filterSg(items Items, IDs []string) Items {
 	}
 
 	if len(IDs) != 0 && len(resourceIDs) == 0 {
-		return items
+		return Items{}
 	}
 
 	for _, item := range items {
-
-		if len(resourceIDs) > 0 {
-			hit := false
-
-			for _, id := range resourceIDs {
-				if item.ID == id {
-					hit = true
-				}
-
-				if hit == true {
-					break
-				}
-			}
-
-			if hit == false {
-				continue
+		for _, id := range resourceIDs {
+			if item.ID == id {
+				filteredItems = append(filteredItems, item)
+				break
 			}
 		}
-
-		filteredItems = append(filteredItems, item)
 	}
 
 	return filteredItems
