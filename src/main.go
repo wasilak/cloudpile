@@ -20,7 +20,6 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/wasilak/cloudpile/libs"
-	"go.elastic.co/apm/module/apmfiber"
 )
 
 var awsRegions []string
@@ -189,12 +188,6 @@ func main() {
 		Views:                 engine,
 		DisableStartupMessage: false,
 	})
-
-	_, apmUrlPresent := os.LookupEnv("ELASTIC_APM_SERVER_URL")
-
-	if apmUrlPresent {
-		app.Use(apmfiber.Middleware())
-	}
 
 	if debug == true {
 		app.Use(pprof.New())
