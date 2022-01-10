@@ -87,7 +87,7 @@
                 setFilterValues(table, response, "region", "region");
 
                 var info = $("<p>");
-                var itemsString = response.length > 1 ? "items" : "item";
+                var itemsString = response.length == 1 ? "item" : "items";
                 info.html("Found: <strong>" + response.length + "</strong> " + itemsString + ".");
                 $("#data-table").before(info);
 
