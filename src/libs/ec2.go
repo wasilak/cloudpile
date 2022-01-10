@@ -76,7 +76,7 @@ func refreshCache(awsRegions, iamRoles []string, accountAliasses map[string]stri
 
 	var wg sync.WaitGroup
 
-	itemsChannel := make(chan Items)
+	// itemsChannel := make(chan Items)
 
 	// this is required, in order to prevent following situation:
 	// 1. goroutine runs in loop, pushing result to channel
@@ -84,10 +84,10 @@ func refreshCache(awsRegions, iamRoles []string, accountAliasses map[string]stri
 	// thanks to this, `range itemsChannel` is able to process items as they appear in channel
 	// thus, unblocking goroutine processing :)
 	// see: https://dev.to/sophiedebenedetto/synchronizing-go-routines-with-channels-and-waitgroups-3ke2
-	go func() {
-		wg.Wait()
-		close(itemsChannel)
-	}()
+	// go func() {
+	// 	wg.Wait()
+	// 	close(itemsChannel)
+	// }()
 
 	for _, iamRole := range iamRoles {
 		for _, region := range awsRegions {
@@ -102,13 +102,19 @@ func refreshCache(awsRegions, iamRoles []string, accountAliasses map[string]stri
 				accountAlias = val
 			}
 
-			go runDescribe(&wg, creds, itemsChannel, sess, region, accountID, accountAlias, verbose, cacheInstance, forceRefresh)
+			newItems := runDescribe(&wg, creds, sess, region, accountID, accountAlias, verbose, cacheInstance, forceRefresh)
+
+			items = append(items, newItems...)
 		}
 	}
 
-	for item := range itemsChannel {
-		items = append(items, item...)
-	}
+	wg.Wait()
+
+	// close(itemsChannel)
+
+	// for item := range itemsChannel {
+	// 	items = append(items, item...)
+	// }
 
 	// set a value with a cost of 1
 	cacheInstance.Cache.Set(cacheKey, items, 1)
@@ -119,8 +125,10 @@ func refreshCache(awsRegions, iamRoles []string, accountAliasses map[string]stri
 	return items
 }
 
-func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials, itemsChannel chan Items, sess *session.Session, region, accountID, accountAlias string, verbose bool, cacheInstance Cache, forceRefresh bool) {
+func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials, sess *session.Session, region, accountID, accountAlias string, verbose bool, cacheInstance Cache, forceRefresh bool) Items {
 	defer wg.Done()
+
+	items := Items{}
 
 	awsRegion := aws.String(region)
 
@@ -130,9 +138,12 @@ func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials, itemsChanne
 		Region:      awsRegion,
 	})
 
-	itemsChannel <- describeEc2(ec2Svc, verbose, accountID, accountAlias, awsRegion)
+	items = append(items, describeEc2(ec2Svc, verbose, accountID, accountAlias, awsRegion)...)
+	items = append(items, describeSg(ec2Svc, verbose, accountID, accountAlias, awsRegion)...)
 
-	itemsChannel <- describeSg(ec2Svc, verbose, accountID, accountAlias, awsRegion)
+	return items
+
+	// itemsChannel <- describeSg(ec2Svc, verbose, accountID, accountAlias, awsRegion)
 }
 
 func describeSg(ec2Svc *ec2.EC2, verbose bool, account, accountAlias string, awsRegion *string) Items {

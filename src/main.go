@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ansrivas/fiberprometheus/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
@@ -208,6 +209,10 @@ func main() {
 		Format: `${pid} ${locals:requestid} ${status} - ${method} ${path}​ ${query}​ ${queryParams}​` + "\n",
 	})
 	app.Use(appLogger)
+
+	prometheus := fiberprometheus.New("cloudpile")
+	prometheus.RegisterAt(app, "/metrics")
+	app.Use(prometheus.Middleware)
 
 	app.Get("/", mainRoute)
 	app.Get("/search", searchRoute)
