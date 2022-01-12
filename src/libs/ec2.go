@@ -2,7 +2,7 @@ package libs
 
 import (
 	"fmt"
-	"log"
+	"github.com/labstack/gommon/log"
 	"net"
 	"regexp"
 	"sync"
@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
 // Item type
@@ -29,7 +30,8 @@ type Item struct {
 type Items []Item
 
 // Describe func
-func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]string, verbose bool, cacheInstance Cache, forceRefresh bool) Items {
+func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]string, cacheInstance Cache, forceRefresh bool, txn *newrelic.Transaction) Items {
+	defer txn.StartSegment("libs.Describe").End()
 
 	items := Items{}
 	filteredItems := Items{}
@@ -44,7 +46,7 @@ func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]str
 		result, found = cacheInstance.Cache.Get(cacheKey)
 
 		if !forceRefresh && !found {
-			log.Println("Cache not yet initialized")
+			log.Debug("Cache not yet initialized")
 			return items
 		}
 
@@ -53,7 +55,7 @@ func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]str
 		}
 
 		if forceRefresh {
-			items = refreshCache(awsRegions, iamRoles, accountAliasses, verbose, cacheInstance, forceRefresh, cacheKey)
+			items = refreshCache(awsRegions, iamRoles, accountAliasses, cacheInstance, forceRefresh, cacheKey, txn)
 		}
 
 	}
@@ -69,25 +71,14 @@ func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]str
 	return filteredItems
 }
 
-func refreshCache(awsRegions, iamRoles []string, accountAliasses map[string]string, verbose bool, cacheInstance Cache, forceRefresh bool, cacheKey string) Items {
+func refreshCache(awsRegions, iamRoles []string, accountAliasses map[string]string, cacheInstance Cache, forceRefresh bool, cacheKey string, txn *newrelic.Transaction) Items {
+	defer txn.StartSegment("libs.refreshCache").End()
+
 	var sess *session.Session
 
 	items := Items{}
 
 	var wg sync.WaitGroup
-
-	// itemsChannel := make(chan Items)
-
-	// this is required, in order to prevent following situation:
-	// 1. goroutine runs in loop, pushing result to channel
-	// 2. application pauses waiting for result to be processed (taken from channel)
-	// thanks to this, `range itemsChannel` is able to process items as they appear in channel
-	// thus, unblocking goroutine processing :)
-	// see: https://dev.to/sophiedebenedetto/synchronizing-go-routines-with-channels-and-waitgroups-3ke2
-	// go func() {
-	// 	wg.Wait()
-	// 	close(itemsChannel)
-	// }()
 
 	for _, iamRole := range iamRoles {
 		for _, region := range awsRegions {
@@ -102,19 +93,13 @@ func refreshCache(awsRegions, iamRoles []string, accountAliasses map[string]stri
 				accountAlias = val
 			}
 
-			newItems := runDescribe(&wg, creds, sess, region, accountID, accountAlias, verbose, cacheInstance, forceRefresh)
+			newItems := runDescribe(&wg, creds, sess, region, accountID, accountAlias, cacheInstance, forceRefresh, txn)
 
 			items = append(items, newItems...)
 		}
 	}
 
 	wg.Wait()
-
-	// close(itemsChannel)
-
-	// for item := range itemsChannel {
-	// 	items = append(items, item...)
-	// }
 
 	// set a value with a cost of 1
 	cacheInstance.Cache.Set(cacheKey, items, 1)
@@ -125,7 +110,9 @@ func refreshCache(awsRegions, iamRoles []string, accountAliasses map[string]stri
 	return items
 }
 
-func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials, sess *session.Session, region, accountID, accountAlias string, verbose bool, cacheInstance Cache, forceRefresh bool) Items {
+func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials, sess *session.Session, region, accountID, accountAlias string, cacheInstance Cache, forceRefresh bool, txn *newrelic.Transaction) Items {
+	defer txn.StartSegment("libs.runDescribe").End()
+
 	defer wg.Done()
 
 	items := Items{}
@@ -138,15 +125,15 @@ func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials, sess *sessi
 		Region:      awsRegion,
 	})
 
-	items = append(items, describeEc2(ec2Svc, verbose, accountID, accountAlias, awsRegion)...)
-	items = append(items, describeSg(ec2Svc, verbose, accountID, accountAlias, awsRegion)...)
+	items = append(items, describeEc2(ec2Svc, accountID, accountAlias, awsRegion, txn)...)
+	items = append(items, describeSg(ec2Svc, accountID, accountAlias, awsRegion, txn)...)
 
 	return items
-
-	// itemsChannel <- describeSg(ec2Svc, verbose, accountID, accountAlias, awsRegion)
 }
 
-func describeSg(ec2Svc *ec2.EC2, verbose bool, account, accountAlias string, awsRegion *string) Items {
+func describeSg(ec2Svc *ec2.EC2, account, accountAlias string, awsRegion *string, txn *newrelic.Transaction) Items {
+	defer txn.StartSegment("libs.describeSg").End()
+
 	var items []Item
 	var err error
 	var result *ec2.DescribeSecurityGroupsOutput
@@ -154,8 +141,8 @@ func describeSg(ec2Svc *ec2.EC2, verbose bool, account, accountAlias string, aws
 	result, err = ec2Svc.DescribeSecurityGroups(nil)
 	if err != nil {
 		match, _ := regexp.MatchString("does not exist", err.Error())
-		if verbose || !match {
-			log.Println("Error", err)
+		if !match {
+			log.Debug("Error", err)
 		}
 	}
 
@@ -181,7 +168,9 @@ func describeSg(ec2Svc *ec2.EC2, verbose bool, account, accountAlias string, aws
 	return items
 }
 
-func describeEc2(ec2Svc *ec2.EC2, verbose bool, account, accountAlias string, awsRegion *string) Items {
+func describeEc2(ec2Svc *ec2.EC2, account, accountAlias string, awsRegion *string, txn *newrelic.Transaction) Items {
+	defer txn.StartSegment("libs.describeEc2").End()
+
 	var items []Item
 	var err error
 	var result *ec2.DescribeInstancesOutput
@@ -190,8 +179,8 @@ func describeEc2(ec2Svc *ec2.EC2, verbose bool, account, accountAlias string, aw
 	result, err = ec2Svc.DescribeInstances(nil)
 	if err != nil {
 		match, _ := regexp.MatchString("does not exist", err.Error())
-		if verbose || !match {
-			log.Println("Error", err)
+		if !match {
+			log.Debug("Error", err)
 		}
 	}
 

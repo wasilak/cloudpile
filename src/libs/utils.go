@@ -1,5 +1,11 @@
 package libs
 
+import (
+	"github.com/newrelic/go-agent/v3/newrelic"
+)
+
+var NewRelicApp *newrelic.Application
+
 // Deduplicate returns a new slice with duplicates values removed.
 func Deduplicate(s []string) []string {
 	if len(s) == 0 {
@@ -15,4 +21,14 @@ func Deduplicate(s []string) []string {
 		}
 	}
 	return result
+}
+
+func RemoveEmptyStrings(s []string) []string {
+	var r []string
+	for _, str := range s {
+		if str != "" {
+			r = append(r, str)
+		}
+	}
+	return r
 }

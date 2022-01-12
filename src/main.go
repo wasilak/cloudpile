@@ -2,32 +2,26 @@ package main
 
 import (
 	"embed"
-	"encoding/json"
 	"flag"
-	"log"
+	"html/template"
+	"io"
+	"io/fs"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
-	"github.com/ansrivas/fiberprometheus/v2"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/compress"
-	"github.com/gofiber/fiber/v2/middleware/filesystem"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/monitor"
-	"github.com/gofiber/fiber/v2/middleware/pprof"
-	"github.com/gofiber/template/html"
+	"github.com/labstack/echo-contrib/prometheus"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/gommon/log"
+	"github.com/newrelic/go-agent/v3/integrations/nrecho-v4"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/wasilak/cloudpile/libs"
 )
 
-var awsRegions []string
-var awsRoles []string
-var accountAliasses map[string]string
-var verbose bool
-var debug bool
+var err error
 
 //go:embed views
 var views embed.FS
@@ -37,78 +31,30 @@ var assets embed.FS
 
 var cacheInstance libs.Cache
 
-func removeEmptyStrings(s []string) []string {
-	var r []string
-	for _, str := range s {
-		if str != "" {
-			r = append(r, str)
-		}
-	}
-	return r
+type Template struct {
+	templates *template.Template
 }
 
-func mainRoute(c *fiber.Ctx) error {
-	return c.Render("views/main", fiber.Map{})
+func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+	return t.templates.ExecuteTemplate(w, name, data)
 }
 
-func configRoute(c *fiber.Ctx) error {
-	return json.NewEncoder(c.Response().BodyWriter()).Encode(viper.GetStringMap("aws"))
-}
-
-func searchRoute(c *fiber.Ctx) error {
-	ids := strings.Split(strings.Replace(c.Query("id"), "%2C", ",", -1), ",")
-
-	ids = libs.Deduplicate(ids)
-
-	if verbose {
-		log.Println(c.Query("id"))
-		log.Println(ids)
+func getEmbededViews() fs.FS {
+	fsys, err := fs.Sub(views, "views")
+	if err != nil {
+		panic(err)
 	}
 
-	return c.Render("views/search", fiber.Map{
-		"IDs": strings.Join(ids, ","),
-	})
+	return fsys
 }
 
-func listRoute(c *fiber.Ctx) error {
-	return c.Render("views/list", fiber.Map{})
-}
-
-func apiSearchRoute(c *fiber.Ctx) error {
-	ids := strings.Split(strings.Replace(c.Params("id"), "%2C", ",", -1), ",")
-	ids = removeEmptyStrings(ids)
-	ids = libs.Deduplicate(ids)
-
-	var items libs.Items
-
-	if verbose {
-		log.Println(c.Query("id"))
-		log.Printf("ids = %+v", ids)
+func getEmbededAssets() http.FileSystem {
+	fsys, err := fs.Sub(assets, "assets")
+	if err != nil {
+		panic(err)
 	}
 
-	if len(ids) > 0 {
-		items = libs.Describe(awsRegions, ids, awsRoles, accountAliasses, verbose, cacheInstance, false)
-	}
-
-	c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSONCharsetUTF8)
-
-	return json.NewEncoder(c.Response().BodyWriter()).Encode(items)
-}
-
-func apiListRoute(c *fiber.Ctx) error {
-	var ids []string
-	var items interface{}
-
-	items = libs.Describe(awsRegions, ids, awsRoles, accountAliasses, verbose, cacheInstance, false)
-
-	c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSONCharsetUTF8)
-
-	if verbose {
-		log.Println(c.Params("id"))
-		log.Println(ids)
-	}
-
-	return json.NewEncoder(c.Response().BodyWriter()).Encode(items)
+	return http.FS(fsys)
 }
 
 func main() {
@@ -137,94 +83,98 @@ func main() {
 		panic(viperErr)
 	}
 
-	awsRegions = viper.GetStringSlice("aws.regions")
-	awsRoles = viper.GetStringSlice("aws.iam_role_arn")
-	accountAliasses = viper.GetStringMapString("aws.account_aliasses")
-	verbose = viper.GetBool("verbose")
-	debug = viper.GetBool("debug")
+	libs.AwsRegions = viper.GetStringSlice("aws.regions")
+	libs.AwsRoles = viper.GetStringSlice("aws.iam_role_arn")
+	libs.AccountAliasses = viper.GetStringMapString("aws.account_aliasses")
 
-	if verbose == true {
-		log.Println(viper.AllSettings())
+	libs.NewRelicApp, err = newrelic.NewApplication(
+		newrelic.ConfigAppName("cloudpile"),
+		newrelic.ConfigLicense(""),
+		newrelic.ConfigDistributedTracerEnabled(true),
+		// newrelic.ConfigDebugLogger(os.Stdout),
+	)
+
+	if err != nil { // Handle errors reading the config file
+		log.Fatal(err)
+		panic(err)
+	}
+
+	log.Debug(viper.AllSettings())
+
+	if viper.GetBool("debug") {
+		log.SetLevel(log.DEBUG)
 	}
 
 	if viper.GetBool("cache.enabled") {
+
 		cacheInstance = libs.InitCache(viper.GetBool("cache.enabled"), viper.GetString("cache.TTL"))
+
+		libs.CacheInstance = cacheInstance
 
 		ticker := time.NewTicker(cacheInstance.TTL)
 
-		if verbose == true {
-			log.Println("Initial cache refresh...")
-		}
+		txn := libs.NewRelicApp.StartTransaction("CacheRefresh")
 
-		// time.Sleep(5 * time.Second)
-		libs.Describe(awsRegions, []string{}, awsRoles, accountAliasses, verbose, cacheInstance, true)
+		log.Debug("Initial cache refresh...")
 
-		if verbose == true {
-			log.Println("Cache refresh done")
-		}
+		libs.Describe(libs.AwsRegions, []string{}, libs.AwsRoles, libs.AccountAliasses, cacheInstance, true, txn)
+
+		log.Debug("Cache refresh done")
+
+		txn.End()
 
 		go func() {
+
 			for range ticker.C {
-				if verbose == true {
-					log.Println("Refreshing cache...")
-				}
-				libs.Describe(awsRegions, []string{}, awsRoles, accountAliasses, verbose, cacheInstance, true)
-				if verbose == true {
-					log.Println("Cache refresh done")
-				}
+				txn := libs.NewRelicApp.StartTransaction("CacheRefresh")
+				log.Debug("Refreshing cache...")
+				libs.Describe(libs.AwsRegions, []string{}, libs.AwsRoles, libs.AccountAliasses, cacheInstance, true, txn)
+				log.Debug("Cache refresh done")
+				txn.End()
 			}
 		}()
 
 		defer ticker.Stop()
+
 	}
 
-	engine := html.NewFileSystem(http.FS(views), ".html")
+	e := echo.New()
 
-	if debug == true {
-		// Debug will print each template that is parsed, good for debugging
-		engine.Debug(true)
+	e.Use(nrecho.Middleware(libs.NewRelicApp))
+
+	e.Use(middleware.Gzip())
+
+	e.HideBanner = true
+
+	if viper.GetBool("verbose") {
+		e.Logger.SetLevel(log.DEBUG)
 	}
 
-	app := fiber.New(fiber.Config{
-		Views:                 engine,
-		DisableStartupMessage: false,
-	})
+	e.Debug = viper.GetBool("debug")
 
-	if debug == true {
-		app.Use(pprof.New())
+	t := &Template{
+		templates: template.Must(template.ParseFS(getEmbededViews(), "*.html")),
 	}
 
-	app.Use(compress.New())
+	e.Renderer = t
 
-	app.Use("/public", filesystem.New(filesystem.Config{
-		Root: http.FS(assets),
-	}))
+	e.Use(middleware.Logger())
 
-	// Reload the templates on each render, good for development
-	if verbose == true {
-		engine.Reload(true) // Optional. Default: false
-	}
+	// Enable metrics middleware
+	p := prometheus.NewPrometheus("echo", nil)
+	p.Use(e)
 
-	appLogger := logger.New(logger.Config{
-		Format: `${pid} ${locals:requestid} ${status} - ${method} ${path}​ ${query}​ ${queryParams}​` + "\n",
-	})
-	app.Use(appLogger)
+	assetHandler := http.FileServer(getEmbededAssets())
+	e.GET("/public/assets/*", echo.WrapHandler(http.StripPrefix("/public/assets/", assetHandler)))
 
-	prometheus := fiberprometheus.New("cloudpile")
-	prometheus.RegisterAt(app, "/metrics")
-	app.Use(prometheus.Middleware)
+	e.GET("/", libs.MainRoute)
+	e.GET("/list", libs.ListRoute)
+	e.GET("/api/list", libs.ApiListRoute)
+	e.GET("/search", libs.SearchRoute)
+	e.GET("/search/", libs.SearchRoute)
+	e.GET("/api/search/", libs.ApiSearchRoute)
+	e.GET("/api/search/:id", libs.ApiSearchRoute)
+	e.GET("/api/config/", libs.ApiConfigRoute)
 
-	app.Get("/", mainRoute)
-	app.Get("/search", searchRoute)
-	app.Get("/list", listRoute)
-	app.Get("/api/search/", apiSearchRoute)
-	app.Get("/api/search/:id", apiSearchRoute)
-	app.Get("/api/list", apiListRoute)
-	app.Get("/api/config", configRoute)
-
-	if debug == true {
-		app.Get("/dashboard", monitor.New())
-	}
-
-	app.Listen(viper.GetString("listen"))
+	e.Logger.Fatal(e.Start(viper.GetString("listen")))
 }
