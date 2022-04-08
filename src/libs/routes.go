@@ -3,7 +3,6 @@ package libs
 import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
-	"github.com/newrelic/go-agent/v3/integrations/nrecho-v4"
 	"github.com/spf13/viper"
 	"net/http"
 	"strings"
@@ -48,8 +47,6 @@ func ListRoute(c echo.Context) error {
 func ApiSearchRoute(c echo.Context) error {
 	var ids []string
 
-	txn := nrecho.FromContext(c)
-
 	ids = strings.Split(strings.Replace(c.Param("id"), "%2C", ",", -1), ",")
 	ids = RemoveEmptyStrings(ids)
 	ids = Deduplicate(ids)
@@ -63,7 +60,7 @@ func ApiSearchRoute(c echo.Context) error {
 	log.Debug(ids)
 
 	if len(ids) > 0 {
-		items = Describe(AwsRegions, ids, AwsRoles, AccountAliasses, CacheInstance, false, txn)
+		items = Describe(AwsRegions, ids, AwsRoles, AccountAliasses, CacheInstance, false)
 	}
 
 	return c.JSON(http.StatusOK, items)
@@ -73,9 +70,7 @@ func ApiListRoute(c echo.Context) error {
 	var ids []string
 	var items interface{}
 
-	txn := nrecho.FromContext(c)
-
-	items = Describe(AwsRegions, ids, AwsRoles, AccountAliasses, CacheInstance, false, txn)
+	items = Describe(AwsRegions, ids, AwsRoles, AccountAliasses, CacheInstance, false)
 
 	return c.JSON(http.StatusOK, items)
 }

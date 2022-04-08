@@ -12,7 +12,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
 // Item type
@@ -30,9 +29,7 @@ type Item struct {
 type Items []Item
 
 // Describe func
-func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]string, cacheInstance Cache, forceRefresh bool, txn *newrelic.Transaction) Items {
-	defer txn.StartSegment("libs.Describe").End()
-
+func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]string, cacheInstance Cache, forceRefresh bool) Items {
 	items := Items{}
 	filteredItems := Items{}
 	var result interface{}
@@ -55,7 +52,7 @@ func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]str
 		}
 
 		if forceRefresh {
-			items = refreshCache(awsRegions, iamRoles, accountAliasses, cacheInstance, forceRefresh, cacheKey, txn)
+			items = refreshCache(awsRegions, iamRoles, accountAliasses, cacheInstance, forceRefresh, cacheKey)
 		}
 
 	}
@@ -71,9 +68,7 @@ func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]str
 	return filteredItems
 }
 
-func refreshCache(awsRegions, iamRoles []string, accountAliasses map[string]string, cacheInstance Cache, forceRefresh bool, cacheKey string, txn *newrelic.Transaction) Items {
-	defer txn.StartSegment("libs.refreshCache").End()
-
+func refreshCache(awsRegions, iamRoles []string, accountAliasses map[string]string, cacheInstance Cache, forceRefresh bool, cacheKey string) Items {
 	var sess *session.Session
 
 	items := Items{}
@@ -93,7 +88,7 @@ func refreshCache(awsRegions, iamRoles []string, accountAliasses map[string]stri
 				accountAlias = val
 			}
 
-			newItems := runDescribe(&wg, creds, sess, region, accountID, accountAlias, cacheInstance, forceRefresh, txn)
+			newItems := runDescribe(&wg, creds, sess, region, accountID, accountAlias, cacheInstance, forceRefresh)
 
 			items = append(items, newItems...)
 		}
@@ -110,9 +105,7 @@ func refreshCache(awsRegions, iamRoles []string, accountAliasses map[string]stri
 	return items
 }
 
-func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials, sess *session.Session, region, accountID, accountAlias string, cacheInstance Cache, forceRefresh bool, txn *newrelic.Transaction) Items {
-	defer txn.StartSegment("libs.runDescribe").End()
-
+func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials, sess *session.Session, region, accountID, accountAlias string, cacheInstance Cache, forceRefresh bool) Items {
 	defer wg.Done()
 
 	items := Items{}
@@ -125,15 +118,13 @@ func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials, sess *sessi
 		Region:      awsRegion,
 	})
 
-	items = append(items, describeEc2(ec2Svc, accountID, accountAlias, awsRegion, txn)...)
-	items = append(items, describeSg(ec2Svc, accountID, accountAlias, awsRegion, txn)...)
+	items = append(items, describeEc2(ec2Svc, accountID, accountAlias, awsRegion)...)
+	items = append(items, describeSg(ec2Svc, accountID, accountAlias, awsRegion)...)
 
 	return items
 }
 
-func describeSg(ec2Svc *ec2.EC2, account, accountAlias string, awsRegion *string, txn *newrelic.Transaction) Items {
-	defer txn.StartSegment("libs.describeSg").End()
-
+func describeSg(ec2Svc *ec2.EC2, account, accountAlias string, awsRegion *string) Items {
 	var items []Item
 	var err error
 	var result *ec2.DescribeSecurityGroupsOutput
@@ -168,9 +159,7 @@ func describeSg(ec2Svc *ec2.EC2, account, accountAlias string, awsRegion *string
 	return items
 }
 
-func describeEc2(ec2Svc *ec2.EC2, account, accountAlias string, awsRegion *string, txn *newrelic.Transaction) Items {
-	defer txn.StartSegment("libs.describeEc2").End()
-
+func describeEc2(ec2Svc *ec2.EC2, account, accountAlias string, awsRegion *string) Items {
 	var items []Item
 	var err error
 	var result *ec2.DescribeInstancesOutput
