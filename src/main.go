@@ -14,8 +14,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
-	"github.com/newrelic/go-agent/v3/integrations/nrecho-v4"
-	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/wasilak/cloudpile/libs"
@@ -87,13 +85,6 @@ func main() {
 	libs.AwsRoles = viper.GetStringSlice("aws.iam_role_arn")
 	libs.AccountAliasses = viper.GetStringMapString("aws.account_aliasses")
 
-	libs.NewRelicApp, err = newrelic.NewApplication(
-		newrelic.ConfigAppName("cloudpile"),
-		newrelic.ConfigLicense(""),
-		newrelic.ConfigDistributedTracerEnabled(true),
-		// newrelic.ConfigDebugLogger(os.Stdout),
-	)
-
 	if err != nil { // Handle errors reading the config file
 		log.Fatal(err)
 		panic(err)
@@ -113,24 +104,18 @@ func main() {
 
 		ticker := time.NewTicker(cacheInstance.TTL)
 
-		txn := libs.NewRelicApp.StartTransaction("CacheRefresh")
-
 		log.Debug("Initial cache refresh...")
 
-		libs.Describe(libs.AwsRegions, []string{}, libs.AwsRoles, libs.AccountAliasses, cacheInstance, true, txn)
+		libs.Describe(libs.AwsRegions, []string{}, libs.AwsRoles, libs.AccountAliasses, cacheInstance, true)
 
 		log.Debug("Cache refresh done")
-
-		txn.End()
 
 		go func() {
 
 			for range ticker.C {
-				txn := libs.NewRelicApp.StartTransaction("CacheRefresh")
 				log.Debug("Refreshing cache...")
-				libs.Describe(libs.AwsRegions, []string{}, libs.AwsRoles, libs.AccountAliasses, cacheInstance, true, txn)
+				libs.Describe(libs.AwsRegions, []string{}, libs.AwsRoles, libs.AccountAliasses, cacheInstance, true)
 				log.Debug("Cache refresh done")
-				txn.End()
 			}
 		}()
 
@@ -139,8 +124,6 @@ func main() {
 	}
 
 	e := echo.New()
-
-	e.Use(nrecho.Middleware(libs.NewRelicApp))
 
 	e.Use(middleware.Gzip())
 
