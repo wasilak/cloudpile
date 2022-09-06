@@ -1,11 +1,11 @@
 package libs
 
 import (
-	"fmt"
-	"github.com/labstack/gommon/log"
 	"net"
 	"regexp"
 	"sync"
+
+	"github.com/labstack/gommon/log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -16,13 +16,14 @@ import (
 
 // Item type
 type Item struct {
-	ID           string     `json:"id"`
-	Type         string     `json:"type"`
-	Tags         []*ec2.Tag `json:"tags"`
-	Account      string     `json:"account"`
-	AccountAlias string     `json:"accountAlias"`
-	Region       string     `json:"region"`
-	IP           string     `json:"ip"`
+	ID             string     `json:"id"`
+	Type           string     `json:"type"`
+	Tags           []*ec2.Tag `json:"tags"`
+	Account        string     `json:"account"`
+	AccountAlias   string     `json:"accountAlias"`
+	Region         string     `json:"region"`
+	IP             string     `json:"ip"`
+	PrivateDNSName string     `json:"private_dns_name"`
 }
 
 // Items type
@@ -38,7 +39,7 @@ func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]str
 
 		var found bool
 
-		cacheKey := fmt.Sprintf("app_cache")
+		cacheKey := "app_cache"
 
 		result, found = cacheInstance.Cache.Get(cacheKey)
 
@@ -62,8 +63,6 @@ func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]str
 	}
 
 	filteredItems = append(filteredItems, filterEc2(items, IDs)...)
-
-	filteredItems = append(filteredItems, filterSg(items, IDs)...)
 
 	return filteredItems
 }
@@ -139,15 +138,10 @@ func describeSg(ec2Svc *ec2.EC2, account, accountAlias string, awsRegion *string
 
 	for _, sg := range result.SecurityGroups {
 
-		var tags []*ec2.Tag
-		for _, tag := range sg.Tags {
-			tags = append(tags, tag)
-		}
-
 		item := Item{
 			ID:           *sg.GroupId,
 			Type:         "Security Group",
-			Tags:         tags,
+			Tags:         sg.Tags,
 			Account:      account,
 			AccountAlias: accountAlias,
 			Region:       *awsRegion,
@@ -182,19 +176,15 @@ func describeEc2(ec2Svc *ec2.EC2, account, accountAlias string, awsRegion *strin
 				privateIP = *instance.PrivateIpAddress
 			}
 
-			var tags []*ec2.Tag
-			for _, tag := range instance.Tags {
-				tags = append(tags, tag)
-			}
-
 			item := Item{
-				ID:           *instance.InstanceId,
-				Type:         "EC2 instance",
-				Tags:         tags,
-				Account:      account,
-				AccountAlias: accountAlias,
-				Region:       *ec2Svc.Config.Region,
-				IP:           privateIP,
+				ID:             *instance.InstanceId,
+				Type:           "EC2 instance",
+				Tags:           instance.Tags,
+				Account:        account,
+				AccountAlias:   accountAlias,
+				Region:         *ec2Svc.Config.Region,
+				IP:             privateIP,
+				PrivateDNSName: *instance.PrivateDnsName,
 			}
 
 			items = append(items, item)
@@ -208,18 +198,22 @@ func filterEc2(items Items, IDs []string) Items {
 	var filteredItems []Item
 	var resourceIDs []string
 	var resourceIPs []string
-	var match bool
+	var resourceTags []map[string]string
 
 	for _, id := range IDs {
-		// EC2 instances
-		match, _ = regexp.MatchString("i-[a-zA-Z0-9_]+", id)
-		if match {
+		// tags
+		tags := getTagsFromString(id)
+		if len(tags) > 0 {
+			resourceTags = append(resourceTags, tags)
+		}
+
+		// IP is kinda special as it is not string, everything else can be matched in loop below
+		if net.ParseIP(id) != nil {
+			resourceIPs = append(resourceIPs, id)
+		} else {
 			resourceIDs = append(resourceIDs, id)
 		}
 
-		if net.ParseIP(id) != nil {
-			resourceIPs = append(resourceIPs, id)
-		}
 	}
 
 	if len(IDs) != 0 && len(resourceIDs) == 0 && len(resourceIPs) == 0 {
@@ -231,11 +225,11 @@ func filterEc2(items Items, IDs []string) Items {
 		hit := false
 
 		for _, id := range resourceIDs {
-			if item.ID == id {
+			if item.ID == id || item.PrivateDNSName == id {
 				hit = true
 			}
 
-			if hit == true {
+			if hit {
 				break
 			}
 		}
@@ -245,44 +239,29 @@ func filterEc2(items Items, IDs []string) Items {
 				hit = true
 			}
 
-			if hit == true {
+			if hit {
 				break
 			}
 		}
 
-		if hit == false {
+		tagHit := 0
+		for _, v := range resourceTags {
+			for _, itemTag := range item.Tags {
+				if *itemTag.Key == v["name"] && *itemTag.Value == v["value"] {
+					tagHit++
+				}
+			}
+		}
+
+		if len(resourceTags) > 0 && tagHit == len(resourceTags) {
+			hit = true
+		}
+
+		if !hit {
 			continue
 		}
 
 		filteredItems = append(filteredItems, item)
-	}
-
-	return filteredItems
-}
-
-func filterSg(items Items, IDs []string) Items {
-	var filteredItems []Item
-	var resourceIDs []string
-	var match bool
-
-	for _, id := range IDs {
-		match, _ = regexp.MatchString("sg-[a-zA-Z0-9_]+", id)
-		if match {
-			resourceIDs = append(resourceIDs, id)
-		}
-	}
-
-	if len(IDs) != 0 && len(resourceIDs) == 0 {
-		return Items{}
-	}
-
-	for _, item := range items {
-		for _, id := range resourceIDs {
-			if item.ID == id {
-				filteredItems = append(filteredItems, item)
-				break
-			}
-		}
 	}
 
 	return filteredItems

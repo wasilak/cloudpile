@@ -41,6 +41,7 @@
                 {title: "Account", field: "account", hozAlign: "left", sorter: "string", headerFilter: "input"},
                 {title: "Account Alias", field: "accountAlias", hozAlign: "left", sorter: "string", headerFilter: "input"},
                 {title: "Region", field: "region", hozAlign: "left", sorter: "string", headerFilter: "input"},
+                {title: "Private DNS", field: "private_dns_name", hozAlign: "left", sorter: "string", headerFilter: "input"},
                 {title: "Private IP", field: "ip", hozAlign: "left", sorter: "string", headerFilter: "input", formatter:function(cell, formatterParams, onRendered){
 
                     if (cell.getValue() == "") {
@@ -85,6 +86,7 @@
                 setFilterValues(table, response, "account", "account");
                 setFilterValues(table, response, "accountAlias", "accountAlias");
                 setFilterValues(table, response, "region", "region");
+                setFilterValues(table, response, "private_dns_name", "private_dns_name");
 
                 var info = $("<p>");
                 var itemsString = response.length == 1 ? "item" : "items";

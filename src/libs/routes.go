@@ -1,11 +1,12 @@
 package libs
 
 import (
+	"net/http"
+	"strings"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 	"github.com/spf13/viper"
-	"net/http"
-	"strings"
 )
 
 var AwsRegions []string

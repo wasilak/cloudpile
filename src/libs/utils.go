@@ -1,6 +1,9 @@
 package libs
 
 import (
+	"regexp"
+	"strings"
+
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
@@ -31,4 +34,18 @@ func RemoveEmptyStrings(s []string) []string {
 		}
 	}
 	return r
+}
+
+func getTagsFromString(tags string) map[string]string {
+	result := make(map[string]string)
+	regexpExp := regexp.MustCompile(`^(?P<name>.+?)\=(?P<value>.+)$`)
+	match := regexpExp.FindStringSubmatch(tags)
+
+	for i, name := range regexpExp.SubexpNames() {
+		if i > 0 && i <= len(match) {
+			result[strings.TrimSpace(name)] = strings.TrimSpace(match[i])
+		}
+	}
+
+	return result
 }
