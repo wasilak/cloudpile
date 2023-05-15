@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/gommon/log"
 	"github.com/spf13/viper"
+	"golang.org/x/exp/slog"
 )
 
 var AwsRegions []string
@@ -30,8 +30,8 @@ func SearchRoute(c echo.Context) error {
 	ids = RemoveEmptyStrings(ids)
 	ids = Deduplicate(ids)
 
-	log.Debug(c.QueryParam("id"))
-	log.Debug(ids)
+	slog.Debug("QueryParam('id')", c.QueryParam("id"))
+	slog.Debug("ids", slog.AnyValue(ids))
 
 	tempalateData := map[string]string{
 		"IDs": strings.Join(ids, ","),
@@ -52,14 +52,10 @@ func ApiSearchRoute(c echo.Context) error {
 	ids = RemoveEmptyStrings(ids)
 	ids = Deduplicate(ids)
 
-	log.Debug(c.QueryParam("id"))
-	log.Debug(ids)
+	slog.Debug("QueryParam('id')", c.QueryParam("id"))
+	slog.Debug("ids", slog.AnyValue(ids))
 
 	var items Items
-
-	log.Debug(c.QueryParam("id"))
-	log.Debug(ids)
-
 	if len(ids) > 0 {
 		items = Describe(AwsRegions, ids, AwsRoles, AccountAliasses, CacheInstance, false)
 	}
@@ -69,9 +65,8 @@ func ApiSearchRoute(c echo.Context) error {
 
 func ApiListRoute(c echo.Context) error {
 	var ids []string
-	var items interface{}
 
-	items = Describe(AwsRegions, ids, AwsRoles, AccountAliasses, CacheInstance, false)
+	items := Describe(AwsRegions, ids, AwsRoles, AccountAliasses, CacheInstance, false)
 
 	return c.JSON(http.StatusOK, items)
 }

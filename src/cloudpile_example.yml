@@ -1,6 +1,6 @@
 ---
 listen: :3000
-debug: false
+loglevel: info
 verbose: false
 aws:
   iam_role_arn: []

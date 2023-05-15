@@ -13,13 +13,12 @@ import (
 	"github.com/labstack/echo-contrib/prometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/labstack/gommon/log"
+	slogecho "github.com/samber/slog-echo"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/wasilak/cloudpile/libs"
+	"golang.org/x/exp/slog"
 )
-
-var err error
 
 //go:embed views
 var views embed.FS
@@ -71,30 +70,22 @@ func main() {
 	viper.SetEnvPrefix("CLOUDPILE")
 	viper.AutomaticEnv()
 
-	viper.SetConfigName("cloudpile")               // name of config file (without extension)
-	viper.SetConfigType("yaml")                    // REQUIRED if the config file does not have the extension in the name
-	viper.AddConfigPath(viper.GetString("config")) // path to look for the config file in
-	viperErr := viper.ReadInConfig()               // Find and read the config file
+	viper.SetConfigName("cloudpile")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(viper.GetString("config"))
+	viperErr := viper.ReadInConfig()
 
-	if viperErr != nil { // Handle errors reading the config file
-		log.Fatal(viperErr)
-		panic(viperErr)
+	if viperErr != nil {
+		slog.Error(viperErr.Error())
 	}
+
+	libs.InitLogging(viper.GetString("loglevel"), "json")
 
 	libs.AwsRegions = viper.GetStringSlice("aws.regions")
 	libs.AwsRoles = viper.GetStringSlice("aws.iam_role_arn")
 	libs.AccountAliasses = viper.GetStringMapString("aws.account_aliasses")
 
-	if err != nil { // Handle errors reading the config file
-		log.Fatal(err)
-		panic(err)
-	}
-
-	log.Debug(viper.AllSettings())
-
-	if viper.GetBool("debug") {
-		log.SetLevel(log.DEBUG)
-	}
+	slog.Debug("viper.AllSettings", slog.AnyValue(viper.AllSettings()))
 
 	if viper.GetBool("cache.enabled") {
 
@@ -104,23 +95,22 @@ func main() {
 
 		ticker := time.NewTicker(cacheInstance.TTL)
 
-		log.Debug("Initial cache refresh...")
+		slog.Debug("Initial cache refresh...")
 
 		libs.Describe(libs.AwsRegions, []string{}, libs.AwsRoles, libs.AccountAliasses, cacheInstance, true)
 
-		log.Debug("Cache refresh done")
+		slog.Debug("Cache refresh done")
 
 		go func() {
 
 			for range ticker.C {
-				log.Debug("Refreshing cache...")
+				slog.Debug("Refreshing cache...")
 				libs.Describe(libs.AwsRegions, []string{}, libs.AwsRoles, libs.AccountAliasses, cacheInstance, true)
-				log.Debug("Cache refresh done")
+				slog.Debug("Cache refresh done")
 			}
 		}()
 
 		defer ticker.Stop()
-
 	}
 
 	e := echo.New()
@@ -128,10 +118,6 @@ func main() {
 	e.Use(middleware.Gzip())
 
 	e.HideBanner = true
-
-	if viper.GetBool("verbose") {
-		e.Logger.SetLevel(log.DEBUG)
-	}
 
 	e.Debug = viper.GetBool("debug")
 
@@ -141,7 +127,8 @@ func main() {
 
 	e.Renderer = t
 
-	e.Use(middleware.Logger())
+	e.Use(slogecho.New(slog.Default()))
+	e.Use(middleware.Recover())
 
 	// Enable metrics middleware
 	p := prometheus.NewPrometheus("echo", nil)

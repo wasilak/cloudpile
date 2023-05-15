@@ -5,13 +5,12 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/labstack/gommon/log"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"golang.org/x/exp/slog"
 )
 
 // Item type
@@ -44,7 +43,7 @@ func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]str
 		result, found = cacheInstance.Cache.Get(cacheKey)
 
 		if !forceRefresh && !found {
-			log.Debug("Cache not yet initialized")
+			slog.Debug("Cache not yet initialized")
 			return items
 		}
 
@@ -132,7 +131,7 @@ func describeSg(ec2Svc *ec2.EC2, account, accountAlias string, awsRegion *string
 	if err != nil {
 		match, _ := regexp.MatchString("does not exist", err.Error())
 		if !match {
-			log.Debug("Error", err)
+			slog.Debug("Error", slog.AnyValue(err))
 		}
 	}
 
@@ -163,7 +162,7 @@ func describeEc2(ec2Svc *ec2.EC2, account, accountAlias string, awsRegion *strin
 	if err != nil {
 		match, _ := regexp.MatchString("does not exist", err.Error())
 		if !match {
-			log.Debug("Error", err)
+			slog.Debug("Error", slog.AnyValue(err))
 		}
 	}
 
