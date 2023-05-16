@@ -9,11 +9,6 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-var AwsRegions []string
-var AwsRoles []string
-var AccountAliasses map[string]string
-var CacheInstance Cache
-
 func MainRoute(c echo.Context) error {
 	var tempalateData interface{}
 	return c.Render(http.StatusOK, "main", tempalateData)
@@ -57,7 +52,7 @@ func ApiSearchRoute(c echo.Context) error {
 
 	var items Items
 	if len(ids) > 0 {
-		items = Describe(AwsRegions, ids, AwsRoles, AccountAliasses, CacheInstance, false)
+		items = Describe(viper.GetStringSlice("aws.regions"), ids, viper.GetStringSlice("aws.iam_role_arn"), viper.GetStringMapString("aws.account_aliasses"), CacheInstance, false)
 	}
 
 	return c.JSON(http.StatusOK, items)
@@ -66,7 +61,7 @@ func ApiSearchRoute(c echo.Context) error {
 func ApiListRoute(c echo.Context) error {
 	var ids []string
 
-	items := Describe(AwsRegions, ids, AwsRoles, AccountAliasses, CacheInstance, false)
+	items := Describe(viper.GetStringSlice("aws.regions"), ids, viper.GetStringSlice("aws.iam_role_arn"), viper.GetStringMapString("aws.account_aliasses"), CacheInstance, false)
 
 	return c.JSON(http.StatusOK, items)
 }

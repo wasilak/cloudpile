@@ -1,7 +1,6 @@
 ---
 listen: :3000
 loglevel: info
-verbose: false
 aws:
   iam_role_arn: []
   account_aliasses: []

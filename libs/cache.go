@@ -1,8 +1,9 @@
 package libs
 
 import (
-	"github.com/dgraph-io/ristretto"
 	"time"
+
+	"github.com/dgraph-io/ristretto"
 )
 
 // Cache type
@@ -11,6 +12,8 @@ type Cache struct {
 	TTL     time.Duration
 	Enabled bool
 }
+
+var CacheInstance Cache
 
 func InitCache(enabled bool, TTLString string) Cache {
 	var cacheInstance Cache
