@@ -1,9 +1,0 @@
----
-listen: localhost:3000
-# listen: :3000
-aws:
-  iam_role_arn:
-    - arn:aws:iam::302730732529:role/read_only
-  account_aliasses:
-  regions:
-    - eu-west-1
