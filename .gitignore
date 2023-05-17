@@ -102,3 +102,4 @@ src/rice-box.go
 src/pkged.go
 
 **/tmp
+dist/**
