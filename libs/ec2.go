@@ -5,9 +5,6 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"golang.org/x/exp/slog"
@@ -29,7 +26,7 @@ type Item struct {
 type Items []Item
 
 // Describe func
-func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]string, cacheInstance Cache, forceRefresh bool) Items {
+func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]string, cacheInstance Cache, forceRefresh bool) (Items, error) {
 	items := Items{}
 	filteredItems := Items{}
 	var result interface{}
@@ -37,6 +34,7 @@ func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]str
 	if cacheInstance.Enabled {
 
 		var found bool
+		var err error
 
 		cacheKey := "app_cache"
 
@@ -44,7 +42,7 @@ func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]str
 
 		if !forceRefresh && !found {
 			slog.Debug("Cache not yet initialized")
-			return items
+			return items, nil
 		}
 
 		if found {
@@ -52,23 +50,24 @@ func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]str
 		}
 
 		if forceRefresh {
-			items = refreshCache(awsRegions, iamRoles, accountAliasses, cacheInstance, forceRefresh, cacheKey)
+			items, err = refreshCache(awsRegions, iamRoles, accountAliasses, cacheInstance, forceRefresh, cacheKey)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 	}
 
 	if len(IDs) == 0 {
-		return items
+		return items, nil
 	}
 
 	filteredItems = append(filteredItems, filterEc2(items, IDs)...)
 
-	return filteredItems
+	return filteredItems, nil
 }
 
-func refreshCache(awsRegions, iamRoles []string, accountAliasses map[string]string, cacheInstance Cache, forceRefresh bool, cacheKey string) Items {
-	var sess *session.Session
-
+func refreshCache(awsRegions, iamRoles []string, accountAliasses map[string]string, cacheInstance Cache, forceRefresh bool, cacheKey string) (Items, error) {
 	items := Items{}
 
 	var wg sync.WaitGroup
@@ -76,8 +75,14 @@ func refreshCache(awsRegions, iamRoles []string, accountAliasses map[string]stri
 	for _, iamRole := range iamRoles {
 		for _, region := range awsRegions {
 			wg.Add(1)
-			sess = session.Must(session.NewSession())
-			creds := stscreds.NewCredentials(sess, iamRole)
+
+			creds := SetupIAMCreds(iamRole)
+
+			sess, err := SetupSession(iamRole, region, creds)
+			if err != nil {
+				return items, err
+			}
+
 			accountID := getAccountIdFromRoleARN(iamRole)
 
 			accountAlias := ""
@@ -86,7 +91,7 @@ func refreshCache(awsRegions, iamRoles []string, accountAliasses map[string]stri
 				accountAlias = val
 			}
 
-			newItems := runDescribe(&wg, creds, sess, region, accountID, accountAlias, cacheInstance, forceRefresh)
+			newItems := runDescribe(&wg, sess, accountID, accountAlias, cacheInstance, forceRefresh)
 
 			items = append(items, newItems...)
 		}
@@ -100,29 +105,27 @@ func refreshCache(awsRegions, iamRoles []string, accountAliasses map[string]stri
 	// wait for value to pass through buffers
 	cacheInstance.Cache.Wait()
 
-	return items
+	return items, nil
 }
 
-func runDescribe(wg *sync.WaitGroup, creds *credentials.Credentials, sess *session.Session, region, accountID, accountAlias string, cacheInstance Cache, forceRefresh bool) Items {
+func runDescribe(wg *sync.WaitGroup, sess *session.Session, accountID, accountAlias string, cacheInstance Cache, forceRefresh bool) Items {
 	defer wg.Done()
 
 	items := Items{}
 
-	awsRegion := aws.String(region)
-
 	// Create new EC2 client
-	ec2Svc := ec2.New(sess, &aws.Config{
-		Credentials: creds,
-		Region:      awsRegion,
-	})
+	ec2Svc := ec2.New(sess)
 
-	items = append(items, describeEc2(ec2Svc, accountID, accountAlias, awsRegion)...)
-	items = append(items, describeSg(ec2Svc, accountID, accountAlias, awsRegion)...)
+	// get all EC2 instances
+	items = append(items, describeEc2(ec2Svc, accountID, accountAlias)...)
+
+	// get all Security Groups
+	items = append(items, describeSg(ec2Svc, accountID, accountAlias)...)
 
 	return items
 }
 
-func describeSg(ec2Svc *ec2.EC2, account, accountAlias string, awsRegion *string) Items {
+func describeSg(ec2Svc *ec2.EC2, account, accountAlias string) Items {
 	var items []Item
 	var err error
 	var result *ec2.DescribeSecurityGroupsOutput
@@ -143,7 +146,7 @@ func describeSg(ec2Svc *ec2.EC2, account, accountAlias string, awsRegion *string
 			Tags:         sg.Tags,
 			Account:      account,
 			AccountAlias: accountAlias,
-			Region:       *awsRegion,
+			Region:       *ec2Svc.Config.Region,
 		}
 
 		items = append(items, item)
@@ -152,7 +155,7 @@ func describeSg(ec2Svc *ec2.EC2, account, accountAlias string, awsRegion *string
 	return items
 }
 
-func describeEc2(ec2Svc *ec2.EC2, account, accountAlias string, awsRegion *string) Items {
+func describeEc2(ec2Svc *ec2.EC2, account, accountAlias string) Items {
 	var items []Item
 	var err error
 	var result *ec2.DescribeInstancesOutput
