@@ -18,7 +18,7 @@
         var table = new Tabulator("#data-table", {
             height: 0.9 * $(window).height(), // 90% of window height in px
             ajaxURL: ajaxURL,
-            layout: "fitColumns", //fit columns to width of table (optional)
+            layout: "fitData",
             pagination: true, //enable pagination.
             paginationSizeSelector: [10, 25, 50, 100],
             columns: [
@@ -64,12 +64,15 @@
                 }},
                 {title: "Tags", field: "tags", hozAlign: "left", formatter:function(cell, formatterParams, onRendered) {
                     var div = $().add("<div>");
-                    var ul = $("<ul>");
 
-                    div.append(ul);
-
-                    $.each( cell.getValue(), function(id, tag) {
-                      ul.append("<li>" + tag.Key + " = " + tag.Value + "</li>");
+                    $.each(cell.getValue(), function (id, tag) {
+                    div.append(
+                        '<span class="badge badge-primary">' +
+                        tag.Key +
+                        " = " +
+                        tag.Value +
+                        "</span><br />"
+                    );
                     });
 
                     return div.html();
