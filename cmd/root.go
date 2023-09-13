@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/wasilak/cloudpile/libs"
-	"golang.org/x/exp/slog"
 )
 
 var (
@@ -20,8 +19,6 @@ var (
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			libs.InitLogging(viper.GetString("loglevel"), viper.GetString("logformat"))
-
-			slog.Debug(fmt.Sprintf("%+v", viper.AllSettings()))
 
 			if viper.GetBool("cache.enabled") {
 				libs.Runner()

@@ -15,7 +15,7 @@ func Runner() {
 
 	slog.Debug("Initial cache refresh...")
 
-	Describe(viper.GetStringSlice("aws.regions"), []string{}, viper.GetStringSlice("aws.iam_role_arn"), viper.GetStringMapString("aws.account_aliasses"), CacheInstance, true)
+	Describe([]string{}, CacheInstance, true)
 
 	slog.Debug("Cache refresh done")
 
@@ -23,7 +23,7 @@ func Runner() {
 
 		for range ticker.C {
 			slog.Debug("Refreshing cache...")
-			Describe(viper.GetStringSlice("aws.regions"), []string{}, viper.GetStringSlice("aws.iam_role_arn"), viper.GetStringMapString("aws.account_aliasses"), CacheInstance, true)
+			Describe([]string{}, CacheInstance, true)
 			slog.Debug("Cache refresh done")
 		}
 	}()

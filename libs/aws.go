@@ -2,7 +2,6 @@ package libs
 
 import (
 	"log"
-	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -12,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 )
 
-func GetIdentity(sess *session.Session) *sts.GetCallerIdentityOutput {
+func getIdentity(sess *session.Session) *sts.GetCallerIdentityOutput {
 	svc := sts.New(sess)
 	input := &sts.GetCallerIdentityInput{}
 
@@ -33,21 +32,16 @@ func GetIdentity(sess *session.Session) *sts.GetCallerIdentityOutput {
 	return result
 }
 
-func getAccountIdFromRoleARN(iamArn string) string {
-	re := regexp.MustCompile(`(?m)arn\:aws\:iam\:\:(\w+)\:role.+`)
-	return re.ReplaceAllString(iamArn, "$1")
-}
-
-func SetupIAMCreds(iamRole string) *credentials.Credentials {
+func setupIAMCreds(iamRole string) *credentials.Credentials {
 	sess := session.Must(session.NewSession())
 	return stscreds.NewCredentials(sess, iamRole)
 }
 
-func SetupSharedProfileCreds(sess *session.Session, profile string) *credentials.Credentials {
+func SetupSharedProfileCreds(profile string) *credentials.Credentials {
 	return credentials.NewSharedCredentials("", profile)
 }
 
-func SetupSession(iamRole, region string, creds *credentials.Credentials) (*session.Session, error) {
+func setupSession(region string, creds *credentials.Credentials) (*session.Session, error) {
 	var sess *session.Session
 
 	sess, err := session.NewSession(&aws.Config{

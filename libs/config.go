@@ -9,7 +9,6 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 )
 
 var (
@@ -17,7 +16,16 @@ var (
 	CfgFile      string
 	Listen       string
 	CacheEnabled bool
+	AWSConfigs   []AWSConfig
 )
+
+type AWSConfig struct {
+	Type         string   `mapstructure:"type"`
+	IAMRoleARN   string   `mapstructure:"iam_role_arn"`
+	Profile      string   `mapstructure:"profile"`
+	AccountAlias string   `mapstructure:"account_alias"`
+	Regions      []string `mapstructure:"regions"`
+}
 
 func InitConfig() {
 	godotenv.Load()
@@ -50,6 +58,14 @@ func InitConfig() {
 	}
 
 	if strings.ToLower(viper.GetString("loglevel")) == "debug" {
-		log.Println(slog.AnyValue(viper.AllSettings()))
+		log.Printf("%+v", viper.AllSettings())
 	}
+
+	log.Printf("%+v", viper.Get("aws"))
+	log.Printf("%+v", viper.GetStringMap("aws"))
+	log.Printf("%+v", viper.GetStringMapStringSlice("aws"))
+
+	viper.UnmarshalKey("aws", &AWSConfigs)
+	log.Printf("%+v", AWSConfigs)
+
 }

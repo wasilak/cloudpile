@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"sync"
 
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"golang.org/x/exp/slog"
@@ -26,15 +27,15 @@ type Item struct {
 type Items []Item
 
 // Describe func
-func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]string, cacheInstance Cache, forceRefresh bool) (Items, error) {
+func Describe(IDs []string, cacheInstance Cache, forceRefresh bool) (Items, error) {
 	items := Items{}
 	filteredItems := Items{}
 	var result interface{}
+	var err error
 
 	if cacheInstance.Enabled {
 
 		var found bool
-		var err error
 
 		cacheKey := "app_cache"
 
@@ -50,12 +51,17 @@ func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]str
 		}
 
 		if forceRefresh {
-			items, err = refreshCache(awsRegions, iamRoles, accountAliasses, cacheInstance, forceRefresh, cacheKey)
+			items, err = refreshCache(cacheInstance, forceRefresh, cacheKey)
 			if err != nil {
 				return nil, err
 			}
 		}
 
+	} else {
+		items, err = getItems()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if len(IDs) == 0 {
@@ -67,37 +73,11 @@ func Describe(awsRegions, IDs, iamRoles []string, accountAliasses map[string]str
 	return filteredItems, nil
 }
 
-func refreshCache(awsRegions, iamRoles []string, accountAliasses map[string]string, cacheInstance Cache, forceRefresh bool, cacheKey string) (Items, error) {
-	items := Items{}
-
-	var wg sync.WaitGroup
-
-	for _, iamRole := range iamRoles {
-		for _, region := range awsRegions {
-			wg.Add(1)
-
-			creds := SetupIAMCreds(iamRole)
-
-			sess, err := SetupSession(iamRole, region, creds)
-			if err != nil {
-				return items, err
-			}
-
-			accountID := getAccountIdFromRoleARN(iamRole)
-
-			accountAlias := ""
-
-			if val, ok := accountAliasses[accountID]; ok {
-				accountAlias = val
-			}
-
-			newItems := runDescribe(&wg, sess, accountID, accountAlias, cacheInstance, forceRefresh)
-
-			items = append(items, newItems...)
-		}
+func refreshCache(cacheInstance Cache, forceRefresh bool, cacheKey string) (Items, error) {
+	items, err := getItems()
+	if err != nil {
+		return nil, nil
 	}
-
-	wg.Wait()
 
 	// set a value with a cost of 1
 	cacheInstance.Cache.Set(cacheKey, items, 1)
@@ -108,7 +88,48 @@ func refreshCache(awsRegions, iamRoles []string, accountAliasses map[string]stri
 	return items, nil
 }
 
-func runDescribe(wg *sync.WaitGroup, sess *session.Session, accountID, accountAlias string, cacheInstance Cache, forceRefresh bool) Items {
+func getItems() (Items, error) {
+	items := Items{}
+
+	var wg sync.WaitGroup
+
+	for _, awsConfig := range AWSConfigs {
+		var sess *session.Session
+		var creds *credentials.Credentials
+		var err error
+
+		for _, region := range awsConfig.Regions {
+
+			if awsConfig.Type == "iam" {
+				creds = setupIAMCreds(awsConfig.IAMRoleARN)
+			} else if awsConfig.Type == "profile" {
+				creds = SetupSharedProfileCreds(awsConfig.Profile)
+			}
+
+			if creds != nil {
+
+				wg.Add(1)
+
+				sess, err = setupSession(region, creds)
+				if err != nil {
+					return items, err
+				}
+
+				identity := getIdentity(sess)
+
+				newItems := runDescribe(&wg, sess, *identity.Account, awsConfig.AccountAlias)
+
+				items = append(items, newItems...)
+			}
+		}
+	}
+
+	wg.Wait()
+
+	return items, nil
+}
+
+func runDescribe(wg *sync.WaitGroup, sess *session.Session, accountID, accountAlias string) Items {
 	defer wg.Done()
 
 	items := Items{}

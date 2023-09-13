@@ -53,7 +53,7 @@ func ApiSearchRoute(c echo.Context) error {
 	var items Items
 	if len(ids) > 0 {
 		var err error
-		items, err = Describe(viper.GetStringSlice("aws.regions"), ids, viper.GetStringSlice("aws.iam_role_arn"), viper.GetStringMapString("aws.account_aliasses"), CacheInstance, false)
+		items, err = Describe(ids, CacheInstance, !viper.GetBool("cache.enabled"))
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
@@ -65,7 +65,7 @@ func ApiSearchRoute(c echo.Context) error {
 func ApiListRoute(c echo.Context) error {
 	var ids []string
 
-	items, err := Describe(viper.GetStringSlice("aws.regions"), ids, viper.GetStringSlice("aws.iam_role_arn"), viper.GetStringMapString("aws.account_aliasses"), CacheInstance, false)
+	items, err := Describe(ids, CacheInstance, viper.GetBool("cache.enabled"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}

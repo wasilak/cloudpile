@@ -2,6 +2,13 @@
 listen: :3000
 loglevel: info
 aws:
-  iam_role_arn: []
-  account_aliasses: []
-  regions: []
+  # - type: iam
+  #   iam_role_arn: arn:aws:iam::AAAAAAA:role/BBBBBBB
+  #   account_alias: account1
+  #   regions:
+  #     - eu-central-1
+  - type: profile
+    profile: default
+    account_alias: account2
+    regions:
+      - eu-central-1
