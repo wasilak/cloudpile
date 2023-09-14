@@ -29,8 +29,7 @@ func SearchRoute(c echo.Context) error {
 	ids = libs.RemoveEmptyStrings(ids)
 	ids = libs.Deduplicate(ids)
 
-	slog.Debug("QueryParam('id')", c.QueryParam("id"))
-	slog.Debug("ids", slog.AnyValue(ids))
+	slog.Debug("QueryDebug", "QueryParam('id')", c.QueryParam("id"), "ids", slog.AnyValue(ids))
 
 	tempalateData := map[string]string{
 		"IDs": strings.Join(ids, ","),
@@ -51,8 +50,7 @@ func ApiSearchRoute(c echo.Context) error {
 	ids = libs.RemoveEmptyStrings(ids)
 	ids = libs.Deduplicate(ids)
 
-	slog.Debug("QueryParam('id')", c.QueryParam("id"))
-	slog.Debug("ids", slog.AnyValue(ids))
+	slog.Debug("QueryDebug", "QueryParam('id')", c.QueryParam("id"), "ids", slog.AnyValue(ids))
 
 	var items []resources.Item
 	if len(ids) > 0 {
