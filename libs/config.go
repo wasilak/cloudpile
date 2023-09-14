@@ -25,6 +25,7 @@ type AWSConfig struct {
 	Profile      string   `mapstructure:"profile"`
 	AccountAlias string   `mapstructure:"account_alias"`
 	Regions      []string `mapstructure:"regions"`
+	Resources    []string `mapstructure:"resources"`
 }
 
 func InitConfig() {

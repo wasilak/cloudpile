@@ -1,16 +1,17 @@
 package ec2
 
 import (
+	"context"
 	"log/slog"
 	"regexp"
 
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/wasilak/cloudpile/cache"
 	"github.com/wasilak/cloudpile/resources"
 )
 
 type EC2Sg struct {
-	EC2Svc *ec2.EC2
+	Client *ec2.Client
 	resources.BaseAWSResource
 }
 
@@ -23,7 +24,7 @@ func (r *EC2Sg) Get() ([]resources.Item, error) {
 	var err error
 	var result *ec2.DescribeSecurityGroupsOutput
 
-	result, err = r.EC2Svc.DescribeSecurityGroups(nil)
+	result, err = r.Client.DescribeSecurityGroups(context.TODO(), nil)
 	if err != nil {
 		match, _ := regexp.MatchString("does not exist", err.Error())
 		if !match {
@@ -34,13 +35,23 @@ func (r *EC2Sg) Get() ([]resources.Item, error) {
 
 	for _, sg := range result.SecurityGroups {
 
+		tags := []resources.ItemTag{}
+		for _, v := range sg.Tags {
+			newTag := resources.ItemTag{
+				Key:   *v.Key,
+				Value: *v.Value,
+			}
+
+			tags = append(tags, newTag)
+		}
+
 		item := resources.Item{
 			ID:           *sg.GroupId,
 			Type:         "Security Group",
-			Tags:         sg.Tags,
+			Tags:         tags,
 			Account:      r.AccountID,
 			AccountAlias: r.AccountAlias,
-			Region:       *r.EC2Svc.Config.Region,
+			Region:       r.Region,
 		}
 
 		items = append(items, item)

@@ -1,105 +1,183 @@
 {{define "footer_scripts"}}
 
-	<script src="https://code.jquery.com/jquery-3.5.1.min.js" crossorigin="anonymous"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
-	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+<script
+  src="https://code.jquery.com/jquery-3.5.1.min.js"
+  crossorigin="anonymous"
+></script>
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+  integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+  crossorigin="anonymous"
+></script>
+<script
+  src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+  integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+  crossorigin="anonymous"
+></script>
 
-	<script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.0.8/dist/js/tabulator.min.js"></script>
+<script
+  type="text/javascript"
+  src="https://unpkg.com/tabulator-tables@5.0.8/dist/js/tabulator.min.js"
+></script>
 
-	<script type="text/javascript">
-    var setFilterValues = function(table, data, columnName, fieldName) {
-        var filterValues = [...new Set(data.map(item => item[fieldName]))];
-        filterValues.sort();
-        table.updateColumnDefinition(columnName, {headerFilter: "select", headerFilterPlaceholder: " ", headerFilterFunc:"in", headerFilterParams: {values: filterValues, multiselect:true}});
-    };
-
-    $( document ).ready(function() {
-
-        var table = new Tabulator("#data-table", {
-            height: 0.9 * $(window).height(), // 90% of window height in px
-            ajaxURL: ajaxURL,
-            layout: "fitData",
-            pagination: true, //enable pagination.
-            paginationSizeSelector: [10, 25, 50, 100],
-            columns: [
-                {title: "ID", field: "id", headerFilter: "input", formatter:function(cell, formatterParams, onRendered){
-                    var div = $().add("<div>");
-
-                    var link = $("<a />", {
-                        id: "link_" + cell.getValue(),
-                        name: "link_" + cell.getValue(),
-                        href: "/search/?id=" + cell.getValue(),
-                        text: cell.getValue(),
-                        target: "_blank"
-                    });
-
-                    div.append(link);
-
-                    return div.html();
-                }},
-                {title: "Type", field: "type", hozAlign: "left", headerFilter: "select", sorter: "string"},
-                {title: "Account", field: "account", hozAlign: "left", sorter: "string", headerFilter: "input"},
-                {title: "Account Alias", field: "accountAlias", hozAlign: "left", sorter: "string", headerFilter: "input"},
-                {title: "Region", field: "region", hozAlign: "left", sorter: "string", headerFilter: "input"},
-                {title: "Private DNS", field: "private_dns_name", hozAlign: "left", sorter: "string", headerFilter: "input"},
-                {title: "Private IP", field: "ip", hozAlign: "left", sorter: "string", headerFilter: "input", formatter:function(cell, formatterParams, onRendered){
-
-                    if (cell.getValue() == "") {
-                        return cell.getValue();
-                    }
-
-                    var div = $().add("<div>");
-
-                    var link = $("<a />", {
-                        id: "link_" + cell.getValue(),
-                        name: "link_" + cell.getValue(),
-                        href: "ssh://" + cell.getValue(),
-                        text: "SSH",
-                        target: "_blank"
-                    });
-
-                    div.append(link);
-
-                    return cell.getValue() + " [" + div.html() + "]";
-                }},
-                {title: "Tags", field: "tags", hozAlign: "left", formatter:function(cell, formatterParams, onRendered) {
-                    var div = $().add("<div>");
-
-                    $.each(cell.getValue(), function (id, tag) {
-                    div.append(
-                        '<span class="badge badge-primary">' +
-                        tag.Key +
-                        " = " +
-                        tag.Value +
-                        "</span><br />"
-                    );
-                    });
-
-                    return div.html();
-                }},
-            ],
-            ajaxResponse:function(url, params, response){
-
-                if (response == null) {
-                    return [];
-                }
-
-                setFilterValues(table, response, "id", "id");
-                setFilterValues(table, response, "type", "type");
-                setFilterValues(table, response, "account", "account");
-                setFilterValues(table, response, "accountAlias", "accountAlias");
-                setFilterValues(table, response, "region", "region");
-                setFilterValues(table, response, "private_dns_name", "private_dns_name");
-
-                var info = $("<p>");
-                var itemsString = response.length == 1 ? "item" : "items";
-                info.html("Found: <strong>" + response.length + "</strong> " + itemsString + ".");
-                $("#data-table").before(info);
-
-                return response; //return the response data to tabulator
-            },
-        });
+<script type="text/javascript">
+  var setFilterValues = function (table, data, columnName, fieldName) {
+    var filterValues = [...new Set(data.map((item) => item[fieldName]))];
+    filterValues.sort();
+    table.updateColumnDefinition(columnName, {
+      headerFilter: "select",
+      headerFilterPlaceholder: " ",
+      headerFilterFunc: "in",
+      headerFilterParams: { values: filterValues, multiselect: true },
     });
+  };
+
+  $(document).ready(function () {
+    var table = new Tabulator("#data-table", {
+      height: 0.9 * $(window).height(), // 90% of window height in px
+      ajaxURL: ajaxURL,
+      layout: "fitData",
+      pagination: true, //enable pagination.
+      paginationSizeSelector: [10, 25, 50, 100],
+      columns: [
+        {
+          title: "ID",
+          field: "id",
+          headerFilter: "input",
+          formatter: function (cell, formatterParams, onRendered) {
+            var div = $().add("<div>");
+
+            var link = $("<a />", {
+              id: "link_" + cell.getValue(),
+              name: "link_" + cell.getValue(),
+              href: "/search/?id=" + cell.getValue(),
+              text: cell.getValue(),
+              target: "_blank",
+            });
+
+            div.append(link);
+
+            return div.html();
+          },
+        },
+        {
+          title: "Type",
+          field: "type",
+          hozAlign: "left",
+          headerFilter: "select",
+          sorter: "string",
+        },
+        {
+          title: "Account",
+          field: "account",
+          hozAlign: "left",
+          sorter: "string",
+          headerFilter: "input",
+        },
+        {
+          title: "Account Alias",
+          field: "accountAlias",
+          hozAlign: "left",
+          sorter: "string",
+          headerFilter: "input",
+        },
+        {
+          title: "Region",
+          field: "region",
+          hozAlign: "left",
+          sorter: "string",
+          headerFilter: "input",
+        },
+        {
+          title: "Private DNS",
+          field: "private_dns_name",
+          hozAlign: "left",
+          sorter: "string",
+          headerFilter: "input",
+        },
+        {
+          title: "Private IP",
+          field: "ip",
+          hozAlign: "left",
+          sorter: "string",
+          headerFilter: "input",
+          formatter: function (cell, formatterParams, onRendered) {
+            if (cell.getValue() == "") {
+              return cell.getValue();
+            }
+
+            var div = $().add("<div>");
+
+            var link = $("<a />", {
+              id: "link_" + cell.getValue(),
+              name: "link_" + cell.getValue(),
+              href: "ssh://" + cell.getValue(),
+              text: "SSH",
+              target: "_blank",
+            });
+
+            div.append(link);
+
+            return cell.getValue() + " [" + div.html() + "]";
+          },
+        },
+        {
+          title: "ARN",
+          field: "arn",
+          hozAlign: "left",
+          headerFilter: "select",
+          sorter: "string",
+        },
+        {
+          title: "Tags",
+          field: "tags",
+          hozAlign: "left",
+          formatter: function (cell, formatterParams, onRendered) {
+            var div = $().add("<div>");
+
+            $.each(cell.getValue(), function (id, tag) {
+              div.append(
+                '<span class="badge badge-primary">' +
+                  tag.key +
+                  " = " +
+                  tag.value +
+                  "</span><br />"
+              );
+            });
+
+            return div.html();
+          },
+        },
+      ],
+      ajaxResponse: function (url, params, response) {
+        if (response == null) {
+          return [];
+        }
+
+        setFilterValues(table, response, "id", "id");
+        setFilterValues(table, response, "arn", "arn");
+        setFilterValues(table, response, "type", "type");
+        setFilterValues(table, response, "account", "account");
+        setFilterValues(table, response, "accountAlias", "accountAlias");
+        setFilterValues(table, response, "region", "region");
+        setFilterValues(
+          table,
+          response,
+          "private_dns_name",
+          "private_dns_name"
+        );
+
+        var info = $("<p>");
+        var itemsString = response.length == 1 ? "item" : "items";
+        info.html(
+          "Found: <strong>" + response.length + "</strong> " + itemsString + "."
+        );
+        $("#data-table").before(info);
+
+        return response; //return the response data to tabulator
+      },
+    });
+  });
 </script>
 
 {{end}}

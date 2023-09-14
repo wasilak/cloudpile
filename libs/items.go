@@ -2,13 +2,14 @@ package libs
 
 import (
 	"net"
+	"slices"
 	"sync"
 
 	"log/slog"
 
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/wasilak/cloudpile/cache"
 	"github.com/wasilak/cloudpile/resources"
 	ec2Resource "github.com/wasilak/cloudpile/resources/ec2"
@@ -84,28 +85,13 @@ func getItems() ([]resources.Item, error) {
 	var wg sync.WaitGroup
 
 	for _, awsConfig := range AWSConfigs {
-		var sess *session.Session
-		var creds *credentials.Credentials
-		var err error
-
 		for _, region := range awsConfig.Regions {
 
-			if awsConfig.Type == "iam" {
-				creds = setupIAMCreds(awsConfig.IAMRoleARN)
-			} else if awsConfig.Type == "profile" {
-				creds = SetupSharedProfileCreds(awsConfig.Profile)
-			}
-
-			if creds != nil {
-
-				sess, err = setupSession(region, creds)
-				if err != nil {
-					return nil, err
-				}
-
-				identity := getIdentity(sess)
-
-				fetchItems(&wg, chanItems, sess, *identity.Account, awsConfig.AccountAlias)
+			awsConfigV2, err := newAWSV2Config(awsConfig, region)
+			if err != nil {
+				slog.Debug(err.Error())
+			} else {
+				fetchItems(&wg, chanItems, region, awsConfigV2, awsConfig)
 			}
 		}
 	}
@@ -123,29 +109,60 @@ func getItems() ([]resources.Item, error) {
 	return items, nil
 }
 
-func fetchItems(wg *sync.WaitGroup, chanItems chan<- []resources.Item, sess *session.Session, accountID, accountAlias string) {
+func fetchItems(wg *sync.WaitGroup, chanItems chan<- []resources.Item, region string, awsConfigV2 aws.Config, awsConfig AWSConfig) {
 	res := []resources.AWSResourceType{}
+	var (
+		accountID string
+		err       error
+	)
 
-	// Create new EC2 client
-	ec2Svc := ec2.New(sess)
+	accountID, err = getAccountId(awsConfigV2)
+	if err != nil {
+		slog.Error(err.Error())
+		accountID = ""
+	}
+
+	ec2Client := ec2.NewFromConfig(awsConfigV2)
 
 	// EC2 instances
-	res = append(res, &ec2Resource.EC2Instance{
-		EC2Svc: ec2Svc,
-		BaseAWSResource: resources.BaseAWSResource{
-			AccountID:    accountID,
-			AccountAlias: accountAlias,
-		},
-	})
+	if slices.Contains(awsConfig.Resources, "ec2") {
+
+		res = append(res, &ec2Resource.EC2Instance{
+			Client: ec2Client,
+			BaseAWSResource: resources.BaseAWSResource{
+				AccountID:    accountID,
+				AccountAlias: awsConfig.AccountAlias,
+				Region:       region,
+			},
+		})
+	}
 
 	// EC2 security groups
-	res = append(res, &ec2Resource.EC2Sg{
-		EC2Svc: ec2Svc,
-		BaseAWSResource: resources.BaseAWSResource{
-			AccountID:    accountID,
-			AccountAlias: accountAlias,
-		},
-	})
+	if slices.Contains(awsConfig.Resources, "sg") {
+		res = append(res, &ec2Resource.EC2Sg{
+			Client: ec2Client,
+			BaseAWSResource: resources.BaseAWSResource{
+				AccountID:    accountID,
+				AccountAlias: awsConfig.AccountAlias,
+				Region:       region,
+			},
+		})
+	}
+
+	// Lambda functions
+	if slices.Contains(awsConfig.Resources, "lambda") {
+
+		lambdaClient := lambda.NewFromConfig(awsConfigV2)
+
+		res = append(res, &resources.LambdaFunction{
+			Client: lambdaClient,
+			BaseAWSResource: resources.BaseAWSResource{
+				AccountID:    accountID,
+				AccountAlias: awsConfig.AccountAlias,
+				Region:       region,
+			},
+		})
+	}
 
 	for _, v := range res {
 		wg.Add(1)
@@ -217,7 +234,7 @@ func filterEc2(items []resources.Item, IDs []string) []resources.Item {
 		tagHit := 0
 		for _, v := range resourceTags {
 			for _, itemTag := range item.Tags {
-				if *itemTag.Key == v["name"] && *itemTag.Value == v["value"] {
+				if itemTag.Key == v["name"] && itemTag.Value == v["value"] {
 					tagHit++
 				}
 			}
