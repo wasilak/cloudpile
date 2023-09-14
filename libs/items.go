@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/wasilak/cloudpile/cache"
 	"github.com/wasilak/cloudpile/resources"
+	ec2Resource "github.com/wasilak/cloudpile/resources/ec2"
 )
 
 func Run(IDs []string, cacheInstance cache.Cache, forceRefresh bool) ([]resources.Item, error) {
@@ -129,7 +130,7 @@ func fetchItems(wg *sync.WaitGroup, chanItems chan<- []resources.Item, sess *ses
 	ec2Svc := ec2.New(sess)
 
 	// EC2 instances
-	res = append(res, &resources.EC2Instance{
+	res = append(res, &ec2Resource.EC2Instance{
 		EC2Svc: ec2Svc,
 		BaseAWSResource: resources.BaseAWSResource{
 			AccountID:    accountID,
@@ -138,7 +139,7 @@ func fetchItems(wg *sync.WaitGroup, chanItems chan<- []resources.Item, sess *ses
 	})
 
 	// EC2 security groups
-	res = append(res, &resources.EC2Sg{
+	res = append(res, &ec2Resource.EC2Sg{
 		EC2Svc: ec2Svc,
 		BaseAWSResource: resources.BaseAWSResource{
 			AccountID:    accountID,

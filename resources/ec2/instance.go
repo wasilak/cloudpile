@@ -1,4 +1,4 @@
-package resources
+package ec2
 
 import (
 	"log/slog"
@@ -6,19 +6,20 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/wasilak/cloudpile/cache"
+	"github.com/wasilak/cloudpile/resources"
 )
 
 type EC2Instance struct {
 	EC2Svc *ec2.EC2
-	BaseAWSResource
+	resources.BaseAWSResource
 }
 
 func (r *EC2Instance) Init(cache cache.Cache) error {
 	return nil
 }
 
-func (r *EC2Instance) Get() ([]Item, error) {
-	items := []Item{}
+func (r *EC2Instance) Get() ([]resources.Item, error) {
+	items := []resources.Item{}
 	var err error
 	var result *ec2.DescribeInstancesOutput
 
@@ -41,7 +42,7 @@ func (r *EC2Instance) Get() ([]Item, error) {
 				privateIP = *instance.PrivateIpAddress
 			}
 
-			item := Item{
+			item := resources.Item{
 				ID:             *instance.InstanceId,
 				Type:           "EC2 instance",
 				Tags:           instance.Tags,
