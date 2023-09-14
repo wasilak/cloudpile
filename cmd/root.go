@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/wasilak/cloudpile/libs"
+	"github.com/wasilak/cloudpile/web"
 )
 
 var (
@@ -24,7 +25,7 @@ var (
 				libs.Runner()
 			}
 
-			libs.Web()
+			web.Web()
 		},
 	}
 	ctx = context.Background()

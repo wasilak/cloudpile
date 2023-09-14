@@ -1,4 +1,4 @@
-package libs
+package web
 
 import (
 	"net/http"
@@ -6,6 +6,9 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/viper"
+	"github.com/wasilak/cloudpile/cache"
+	"github.com/wasilak/cloudpile/libs"
+	"github.com/wasilak/cloudpile/resources"
 	"golang.org/x/exp/slog"
 )
 
@@ -22,8 +25,8 @@ func SearchRoute(c echo.Context) error {
 	var ids []string
 
 	ids = strings.Split(strings.Replace(c.QueryParam("id"), "%2C", ",", -1), ",")
-	ids = RemoveEmptyStrings(ids)
-	ids = Deduplicate(ids)
+	ids = libs.RemoveEmptyStrings(ids)
+	ids = libs.Deduplicate(ids)
 
 	slog.Debug("QueryParam('id')", c.QueryParam("id"))
 	slog.Debug("ids", slog.AnyValue(ids))
@@ -44,16 +47,16 @@ func ApiSearchRoute(c echo.Context) error {
 	var ids []string
 
 	ids = strings.Split(strings.Replace(c.Param("id"), "%2C", ",", -1), ",")
-	ids = RemoveEmptyStrings(ids)
-	ids = Deduplicate(ids)
+	ids = libs.RemoveEmptyStrings(ids)
+	ids = libs.Deduplicate(ids)
 
 	slog.Debug("QueryParam('id')", c.QueryParam("id"))
 	slog.Debug("ids", slog.AnyValue(ids))
 
-	var items Items
+	var items []resources.Item
 	if len(ids) > 0 {
 		var err error
-		items, err = Describe(ids, CacheInstance, !viper.GetBool("cache.enabled"))
+		items, err = libs.Run(ids, cache.CacheInstance, !viper.GetBool("cache.enabled"))
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
@@ -65,7 +68,7 @@ func ApiSearchRoute(c echo.Context) error {
 func ApiListRoute(c echo.Context) error {
 	var ids []string
 
-	items, err := Describe(ids, CacheInstance, viper.GetBool("cache.enabled"))
+	items, err := libs.Run(ids, cache.CacheInstance, viper.GetBool("cache.enabled"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}

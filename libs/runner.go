@@ -4,18 +4,19 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
+	"github.com/wasilak/cloudpile/cache"
 	"golang.org/x/exp/slog"
 )
 
 func Runner() {
 
-	CacheInstance = InitCache(viper.GetBool("cache.enabled"), viper.GetString("cache.TTL"))
+	cache.CacheInstance = cache.InitCache(viper.GetBool("cache.enabled"), viper.GetString("cache.TTL"))
 
-	ticker := time.NewTicker(CacheInstance.TTL)
+	ticker := time.NewTicker(cache.CacheInstance.TTL)
 
 	slog.Debug("Initial cache refresh...")
 
-	Describe([]string{}, CacheInstance, true)
+	Run([]string{}, cache.CacheInstance, true)
 
 	slog.Debug("Cache refresh done")
 
@@ -23,7 +24,7 @@ func Runner() {
 
 		for range ticker.C {
 			slog.Debug("Refreshing cache...")
-			Describe([]string{}, CacheInstance, true)
+			Run([]string{}, cache.CacheInstance, true)
 			slog.Debug("Cache refresh done")
 		}
 	}()
