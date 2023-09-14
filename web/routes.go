@@ -4,12 +4,13 @@ import (
 	"net/http"
 	"strings"
 
+	"log/slog"
+
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/viper"
 	"github.com/wasilak/cloudpile/cache"
 	"github.com/wasilak/cloudpile/libs"
 	"github.com/wasilak/cloudpile/resources"
-	"golang.org/x/exp/slog"
 )
 
 func MainRoute(c echo.Context) error {

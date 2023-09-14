@@ -57,15 +57,10 @@ func InitConfig() {
 		log.Printf("%+v\n", err)
 	}
 
+	viper.UnmarshalKey("aws", &AWSConfigs)
+
 	if strings.ToLower(viper.GetString("loglevel")) == "debug" {
 		log.Printf("%+v", viper.AllSettings())
+		log.Printf("%+v", AWSConfigs)
 	}
-
-	log.Printf("%+v", viper.Get("aws"))
-	log.Printf("%+v", viper.GetStringMap("aws"))
-	log.Printf("%+v", viper.GetStringMapStringSlice("aws"))
-
-	viper.UnmarshalKey("aws", &AWSConfigs)
-	log.Printf("%+v", AWSConfigs)
-
 }

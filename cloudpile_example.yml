@@ -1,6 +1,8 @@
 ---
 listen: :3000
 loglevel: info
+cache:
+  enabled: true
 aws:
   # - type: iam
   #   iam_role_arn: arn:aws:iam::AAAAAAA:role/BBBBBBB

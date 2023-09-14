@@ -3,12 +3,15 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/wasilak/cloudpile/cache"
 	"github.com/wasilak/cloudpile/libs"
 	"github.com/wasilak/cloudpile/web"
+	"github.com/wasilak/loggergo"
 )
 
 var (
@@ -19,9 +22,19 @@ var (
 			cmd.SetContext(ctx)
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			libs.InitLogging(viper.GetString("loglevel"), viper.GetString("logformat"))
+			loggerConfig := loggergo.LoggerGoConfig{
+				Level:  viper.GetString("loglevel"),
+				Format: viper.GetString("logformat"),
+			}
+
+			_, err := loggergo.LoggerInit(loggerConfig)
+			if err != nil {
+				slog.Error(err.Error())
+				os.Exit(1)
+			}
 
 			if viper.GetBool("cache.enabled") {
+				cache.CacheInstance = cache.InitCache(viper.GetBool("cache.enabled"), viper.GetString("cache.TTL"))
 				libs.Runner()
 			}
 
@@ -39,14 +52,13 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(libs.InitConfig)
 
 	rootCmd.PersistentFlags().StringVar(&libs.CfgFile, "config", "", "config file (default is $HOME/."+libs.AppName+"/config.yml)")
-	rootCmd.PersistentFlags().BoolVar(&libs.CacheEnabled, "cacheEnabled", false, "cache enabled")
 	rootCmd.PersistentFlags().StringVar(&libs.Listen, "listen", "127.0.0.1:3000", "listen address")
 
 	viper.BindPFlag("listen", rootCmd.PersistentFlags().Lookup("listen"))
-	viper.BindPFlag("cacheEnabled", rootCmd.PersistentFlags().Lookup("cacheEnabled"))
+
+	cobra.OnInitialize(libs.InitConfig)
 
 	rootCmd.AddCommand(versionCmd)
 }

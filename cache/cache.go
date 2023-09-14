@@ -19,6 +19,10 @@ func InitCache(enabled bool, TTLString string) Cache {
 	var cacheInstance Cache
 	var cacheErr error
 
+	if TTLString == "" {
+		TTLString = "1m"
+	}
+
 	cacheInstance.Enabled = enabled
 
 	cacheInstance.TTL, cacheErr = time.ParseDuration(TTLString)

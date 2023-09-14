@@ -4,12 +4,13 @@ import (
 	"net"
 	"sync"
 
+	"log/slog"
+
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/wasilak/cloudpile/cache"
 	"github.com/wasilak/cloudpile/resources"
-	"golang.org/x/exp/slog"
 )
 
 func Run(IDs []string, cacheInstance cache.Cache, forceRefresh bool) ([]resources.Item, error) {
@@ -32,7 +33,10 @@ func Run(IDs []string, cacheInstance cache.Cache, forceRefresh bool) ([]resource
 		}
 
 		if found {
+			slog.Debug("Cache hit...")
 			items = result.([]resources.Item)
+		} else {
+			slog.Debug("Cache miss...")
 		}
 
 		if forceRefresh {

@@ -3,14 +3,12 @@ package libs
 import (
 	"time"
 
-	"github.com/spf13/viper"
+	"log/slog"
+
 	"github.com/wasilak/cloudpile/cache"
-	"golang.org/x/exp/slog"
 )
 
 func Runner() {
-
-	cache.CacheInstance = cache.InitCache(viper.GetBool("cache.enabled"), viper.GetString("cache.TTL"))
 
 	ticker := time.NewTicker(cache.CacheInstance.TTL)
 
@@ -18,16 +16,13 @@ func Runner() {
 
 	Run([]string{}, cache.CacheInstance, true)
 
-	slog.Debug("Cache refresh done")
+	slog.Debug("Cache refresh done", "next_in", cache.CacheInstance.TTL)
 
 	go func() {
-
 		for range ticker.C {
 			slog.Debug("Refreshing cache...")
 			Run([]string{}, cache.CacheInstance, true)
-			slog.Debug("Cache refresh done")
+			slog.Debug("Cache refresh done", "next_in", cache.CacheInstance.TTL)
 		}
 	}()
-
-	defer ticker.Stop()
 }

@@ -7,12 +7,13 @@ import (
 	"net/http"
 	"text/template"
 
+	"log/slog"
+
 	"github.com/labstack/echo-contrib/prometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	slogecho "github.com/samber/slog-echo"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 )
 
 //go:embed views
