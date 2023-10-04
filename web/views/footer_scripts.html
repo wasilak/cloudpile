@@ -127,6 +127,21 @@
           hozAlign: "left",
           headerFilter: "select",
           sorter: "string",
+          formatter: function (cell, formatterParams, onRendered) {
+            var div = $().add("<div>");
+
+            var link = $("<a />", {
+              id: "link_" + cell.getValue(),
+              name: "link_" + cell.getValue(),
+              href: "/search/?id=" + cell.getValue(),
+              text: cell.getValue(),
+              target: "_blank",
+            });
+
+            div.append(link);
+
+            return div.html();
+          },
         },
         {
           title: "Tags",

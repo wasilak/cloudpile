@@ -4,6 +4,7 @@ import (
 	"net"
 	"slices"
 	"sync"
+	"time"
 
 	"log/slog"
 
@@ -18,70 +19,7 @@ import (
 )
 
 func Run(IDs []string, cacheInstance cache.Cache, forceRefresh bool) ([]resources.Item, error) {
-	items := []resources.Item{}
-	filteredItems := []resources.Item{}
-	var result interface{}
-	var err error
 
-	if cacheInstance.Enabled {
-
-		var found bool
-
-		cacheKey := "app_cache"
-
-		result, found = cacheInstance.Cache.Get(cacheKey)
-
-		if !forceRefresh && !found {
-			slog.Debug("Cache not yet initialized")
-			return items, nil
-		}
-
-		if found {
-			slog.Debug("Cache hit...")
-			items = result.([]resources.Item)
-		} else {
-			slog.Debug("Cache miss...")
-		}
-
-		if forceRefresh {
-			items, err = refreshCache(cacheInstance, forceRefresh, cacheKey)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-	} else {
-		items, err = getItems()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if len(IDs) == 0 {
-		return items, nil
-	}
-
-	filteredItems = append(filteredItems, filterEc2(items, IDs)...)
-
-	return filteredItems, nil
-}
-
-func refreshCache(cacheInstance cache.Cache, forceRefresh bool, cacheKey string) ([]resources.Item, error) {
-	items, err := getItems()
-	if err != nil {
-		return nil, nil
-	}
-
-	// set a value with a cost of 1
-	cacheInstance.Cache.Set(cacheKey, items, 1)
-
-	// wait for value to pass through buffers
-	cacheInstance.Cache.Wait()
-
-	return items, nil
-}
-
-func getItems() ([]resources.Item, error) {
 	chanItems := make(chan []resources.Item)
 
 	var wg sync.WaitGroup
@@ -91,9 +29,9 @@ func getItems() ([]resources.Item, error) {
 
 			awsConfigV2, err := newAWSV2Config(awsConfig, region)
 			if err != nil {
-				slog.Debug(err.Error())
+				slog.Debug(err.Error(), "awsConfig", awsConfig, "region", region)
 			} else {
-				fetchItems(&wg, chanItems, region, awsConfigV2, awsConfig)
+				fetchItems(&wg, chanItems, region, awsConfigV2, awsConfig, cacheInstance, forceRefresh)
 			}
 		}
 	}
@@ -108,10 +46,16 @@ func getItems() ([]resources.Item, error) {
 		items = append(items, result...)
 	}
 
-	return items, nil
+	if len(IDs) == 0 {
+		return items, nil
+	}
+
+	filteredItems := filterItems(items, IDs)
+
+	return filteredItems, nil
 }
 
-func fetchItems(wg *sync.WaitGroup, chanItems chan<- []resources.Item, region string, awsConfigV2 aws.Config, awsConfig AWSConfig) {
+func fetchItems(wg *sync.WaitGroup, chanItems chan<- []resources.Item, region string, awsConfigV2 aws.Config, awsConfig AWSConfig, cacheInstance cache.Cache, forceRefresh bool) {
 	res := []resources.AWSResourceType{}
 	var (
 		accountID string
@@ -135,6 +79,7 @@ func fetchItems(wg *sync.WaitGroup, chanItems chan<- []resources.Item, region st
 				AccountID:    accountID,
 				AccountAlias: awsConfig.AccountAlias,
 				Region:       region,
+				Type:         "ec2",
 			},
 		})
 	}
@@ -147,6 +92,7 @@ func fetchItems(wg *sync.WaitGroup, chanItems chan<- []resources.Item, region st
 				AccountID:    accountID,
 				AccountAlias: awsConfig.AccountAlias,
 				Region:       region,
+				Type:         "sg",
 			},
 		})
 	}
@@ -162,6 +108,7 @@ func fetchItems(wg *sync.WaitGroup, chanItems chan<- []resources.Item, region st
 				AccountID:    accountID,
 				AccountAlias: awsConfig.AccountAlias,
 				Region:       region,
+				Type:         "lambda",
 			},
 		})
 	}
@@ -177,6 +124,7 @@ func fetchItems(wg *sync.WaitGroup, chanItems chan<- []resources.Item, region st
 				AccountID:    accountID,
 				AccountAlias: awsConfig.AccountAlias,
 				Region:       region,
+				Type:         "elb",
 			},
 		})
 	}
@@ -192,28 +140,69 @@ func fetchItems(wg *sync.WaitGroup, chanItems chan<- []resources.Item, region st
 				AccountID:    accountID,
 				AccountAlias: awsConfig.AccountAlias,
 				Region:       region,
+				Type:         "asg",
 			},
 		})
 	}
 
-	for _, v := range res {
+	for _, itemsType := range res {
 		wg.Add(1)
-		go describeItems(wg, chanItems, v)
+		go describeItems(wg, chanItems, cacheInstance, forceRefresh, itemsType)
 	}
 }
 
-func describeItems(wg *sync.WaitGroup, chanItems chan<- []resources.Item, res resources.AWSResourceType) {
+func describeItems(wg *sync.WaitGroup, chanItems chan<- []resources.Item, cacheInstance cache.Cache, forceRefresh bool, res resources.AWSResourceType) {
 	defer wg.Done()
+	var result interface{}
+	var err error
 
-	items, err := res.Get()
-	if err != nil {
-		slog.Error(err.Error())
+	items := []resources.Item{}
+
+	if cacheInstance.Enabled {
+
+		var found bool
+
+		result, found = cacheInstance.Cache.Get(res.GetCacheKey())
+
+		if !forceRefresh && !found {
+			slog.Debug("Cache not yet initialized", "cache_key", res.GetCacheKey(), "forceRefresh", forceRefresh)
+		}
+
+		if found {
+			slog.Debug("Cache hit", "cache_key", res.GetCacheKey(), "forceRefresh", forceRefresh)
+			items = result.([]resources.Item)
+		} else {
+			slog.Debug("Cache miss", "cache_key", res.GetCacheKey(), "forceRefresh", forceRefresh)
+		}
+
+		if forceRefresh {
+			items, err = res.Get()
+			if err != nil {
+				slog.Error(err.Error())
+			}
+
+			// set a value with a cost of 1
+			cacheInstance.Cache.Set(res.GetCacheKey(), items, 1)
+
+			// wait for value to pass through buffers
+			cacheInstance.Cache.Wait()
+
+			nextUpdate := time.Now().Add(cacheInstance.TTL)
+
+			slog.Debug("Cache refresh done", "cache_key", res.GetCacheKey(), "forceRefresh", forceRefresh, "next_in", cache.CacheInstance.TTL, "next_time", nextUpdate)
+		}
+
+	} else {
+		items, err = res.Get()
+		if err != nil {
+			slog.Error(err.Error())
+		}
 	}
 
 	chanItems <- items
 }
 
-func filterEc2(items []resources.Item, IDs []string) []resources.Item {
+func filterItems(items []resources.Item, IDs []string) []resources.Item {
 	var filteredItems []resources.Item
 	var resourceIDs []string
 	var resourceIPs []string

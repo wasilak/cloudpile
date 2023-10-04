@@ -1,9 +1,5 @@
 package resources
 
-import (
-	"github.com/wasilak/cloudpile/cache"
-)
-
 type ItemTag struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
@@ -22,14 +18,14 @@ type Item struct {
 }
 
 type AWSResourceType interface {
-	Init(cache cache.Cache) error
 	Get() ([]Item, error)
+	GetCacheKey() string
 }
 
 type BaseAWSResource struct {
-	Cache        cache.Cache
 	Items        []Item
 	AccountID    string
 	AccountAlias string
 	Region       string
+	Type         string
 }

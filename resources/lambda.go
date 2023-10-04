@@ -2,11 +2,11 @@ package resources
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
-	"github.com/wasilak/cloudpile/cache"
 )
 
 type LambdaFunction struct {
@@ -14,8 +14,8 @@ type LambdaFunction struct {
 	BaseAWSResource
 }
 
-func (r *LambdaFunction) Init(cache cache.Cache) error {
-	return nil
+func (r *LambdaFunction) GetCacheKey() string {
+	return fmt.Sprintf("%s-%s-%s", r.AccountID, r.Region, r.Type)
 }
 
 func (r *LambdaFunction) Get() ([]Item, error) {

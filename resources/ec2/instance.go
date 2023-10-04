@@ -2,11 +2,11 @@ package ec2
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"regexp"
 
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
-	"github.com/wasilak/cloudpile/cache"
 	"github.com/wasilak/cloudpile/resources"
 )
 
@@ -15,8 +15,8 @@ type EC2Instance struct {
 	resources.BaseAWSResource
 }
 
-func (r *EC2Instance) Init(cache cache.Cache) error {
-	return nil
+func (r *EC2Instance) GetCacheKey() string {
+	return fmt.Sprintf("%s-%s-%s", r.AccountID, r.Region, r.Type)
 }
 
 func (r *EC2Instance) Get() ([]resources.Item, error) {

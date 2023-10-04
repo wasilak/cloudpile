@@ -20,9 +20,7 @@ func Runner() {
 
 	go func() {
 		for range ticker.C {
-			slog.Debug("Refreshing cache...")
 			Run([]string{}, cache.CacheInstance, true)
-			slog.Debug("Cache refresh done", "next_in", cache.CacheInstance.TTL)
 		}
 	}()
 }

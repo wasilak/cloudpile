@@ -2,11 +2,11 @@ package ec2
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"regexp"
 
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
-	"github.com/wasilak/cloudpile/cache"
 	"github.com/wasilak/cloudpile/resources"
 )
 
@@ -15,8 +15,8 @@ type ASG struct {
 	resources.BaseAWSResource
 }
 
-func (r *ASG) Init(cache cache.Cache) error {
-	return nil
+func (r *ASG) GetCacheKey() string {
+	return fmt.Sprintf("%s-%s-%s", r.AccountID, r.Region, r.Type)
 }
 
 func (r *ASG) Get() ([]resources.Item, error) {

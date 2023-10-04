@@ -7,7 +7,6 @@ import (
 	"regexp"
 
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
-	"github.com/wasilak/cloudpile/cache"
 	"github.com/wasilak/cloudpile/resources"
 )
 
@@ -16,8 +15,8 @@ type ELB struct {
 	resources.BaseAWSResource
 }
 
-func (r *ELB) Init(cache cache.Cache) error {
-	return nil
+func (r *ELB) GetCacheKey() string {
+	return fmt.Sprintf("%s-%s-%s", r.AccountID, r.Region, r.Type)
 }
 
 func (r *ELB) Get() ([]resources.Item, error) {
