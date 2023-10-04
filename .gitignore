@@ -103,3 +103,4 @@ src/pkged.go
 
 **/tmp
 dist/**
+.vscode/

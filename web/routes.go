@@ -55,7 +55,7 @@ func ApiSearchRoute(c echo.Context) error {
 	var items []resources.Item
 	if len(ids) > 0 {
 		var err error
-		items, err = libs.Run(ids, cache.CacheInstance, !viper.GetBool("cache.enabled"))
+		items, err = libs.Run(ids, cache.CacheInstance, false)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
@@ -67,7 +67,7 @@ func ApiSearchRoute(c echo.Context) error {
 func ApiListRoute(c echo.Context) error {
 	var ids []string
 
-	items, err := libs.Run(ids, cache.CacheInstance, viper.GetBool("cache.enabled"))
+	items, err := libs.Run(ids, cache.CacheInstance, false)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}

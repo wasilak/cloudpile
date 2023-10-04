@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/wasilak/cloudpile/cache"
 	"github.com/wasilak/cloudpile/resources"
@@ -156,6 +157,21 @@ func fetchItems(wg *sync.WaitGroup, chanItems chan<- []resources.Item, region st
 
 		res = append(res, &resources.LambdaFunction{
 			Client: lambdaClient,
+			BaseAWSResource: resources.BaseAWSResource{
+				AccountID:    accountID,
+				AccountAlias: awsConfig.AccountAlias,
+				Region:       region,
+			},
+		})
+	}
+
+	// EC2 load balancers
+	if slices.Contains(awsConfig.Resources, "elb") {
+
+		elbClient := elasticloadbalancingv2.NewFromConfig(awsConfigV2)
+
+		res = append(res, &ec2Resource.ELB{
+			Client: elbClient,
 			BaseAWSResource: resources.BaseAWSResource{
 				AccountID:    accountID,
 				AccountAlias: awsConfig.AccountAlias,
