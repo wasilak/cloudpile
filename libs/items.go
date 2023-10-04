@@ -8,6 +8,7 @@ import (
 	"log/slog"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
@@ -180,6 +181,21 @@ func fetchItems(wg *sync.WaitGroup, chanItems chan<- []resources.Item, region st
 		})
 	}
 
+	// EC2 autoscaling groups
+	if slices.Contains(awsConfig.Resources, "asg") {
+
+		asgClient := autoscaling.NewFromConfig(awsConfigV2)
+
+		res = append(res, &ec2Resource.ASG{
+			Client: asgClient,
+			BaseAWSResource: resources.BaseAWSResource{
+				AccountID:    accountID,
+				AccountAlias: awsConfig.AccountAlias,
+				Region:       region,
+			},
+		})
+	}
+
 	for _, v := range res {
 		wg.Add(1)
 		go describeItems(wg, chanItems, v)
@@ -229,6 +245,16 @@ func filterEc2(items []resources.Item, IDs []string) []resources.Item {
 
 		for _, id := range resourceIDs {
 			if item.ID == id || item.PrivateDNSName == id {
+				hit = true
+			}
+
+			if hit {
+				break
+			}
+		}
+
+		for _, id := range resourceIDs {
+			if item.ARN == id || item.PrivateDNSName == id {
 				hit = true
 			}
 
