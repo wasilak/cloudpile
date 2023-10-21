@@ -74,10 +74,8 @@ func Web() {
 	e.GET("/public/assets/*", echo.WrapHandler(http.StripPrefix("/public/assets/", assetHandler)))
 
 	e.GET("/", MainRoute)
-	e.GET("/list", ListRoute)
+	e.GET("/:path", MainRoute)
 	e.GET("/api/list", ApiListRoute)
-	e.GET("/search", SearchRoute)
-	e.GET("/search/", SearchRoute)
 	e.GET("/api/search/", ApiSearchRoute)
 	e.GET("/api/search/:id", ApiSearchRoute)
 	e.GET("/api/config/", ApiConfigRoute)

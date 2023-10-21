@@ -34,8 +34,8 @@ var (
 			}
 
 			if viper.GetBool("cache.enabled") {
-				cache.CacheInstance = cache.InitCache(viper.GetBool("cache.enabled"), viper.GetString("cache.TTL"))
-				libs.Runner()
+				cache.CacheInit(ctx)
+				libs.Runner(ctx)
 			}
 
 			web.Web()

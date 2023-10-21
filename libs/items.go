@@ -1,6 +1,7 @@
 package libs
 
 import (
+	"context"
 	"net"
 	"slices"
 	"sync"
@@ -13,12 +14,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
+	"github.com/spf13/viper"
 	"github.com/wasilak/cloudpile/cache"
 	"github.com/wasilak/cloudpile/resources"
 	ec2Resource "github.com/wasilak/cloudpile/resources/ec2"
 )
 
-func Run(IDs []string, cacheInstance cache.Cache, forceRefresh bool) ([]resources.Item, error) {
+func Run(ctx context.Context, IDs []string, cacheInstance cache.CacheInterface, forceRefresh bool) ([]resources.Item, error) {
 
 	chanItems := make(chan []resources.Item)
 
@@ -31,7 +33,7 @@ func Run(IDs []string, cacheInstance cache.Cache, forceRefresh bool) ([]resource
 			if err != nil {
 				slog.Debug(err.Error(), "awsConfig", awsConfig, "region", region)
 			} else {
-				fetchItems(&wg, chanItems, region, awsConfigV2, awsConfig, cacheInstance, forceRefresh)
+				fetchItems(ctx, &wg, chanItems, region, awsConfigV2, awsConfig, cacheInstance, forceRefresh)
 			}
 		}
 	}
@@ -55,7 +57,7 @@ func Run(IDs []string, cacheInstance cache.Cache, forceRefresh bool) ([]resource
 	return filteredItems, nil
 }
 
-func fetchItems(wg *sync.WaitGroup, chanItems chan<- []resources.Item, region string, awsConfigV2 aws.Config, awsConfig AWSConfig, cacheInstance cache.Cache, forceRefresh bool) {
+func fetchItems(ctx context.Context, wg *sync.WaitGroup, chanItems chan<- []resources.Item, region string, awsConfigV2 aws.Config, awsConfig AWSConfig, cacheInstance cache.CacheInterface, forceRefresh bool) {
 	res := []resources.AWSResourceType{}
 	var (
 		accountID string
@@ -147,22 +149,22 @@ func fetchItems(wg *sync.WaitGroup, chanItems chan<- []resources.Item, region st
 
 	for _, itemsType := range res {
 		wg.Add(1)
-		go describeItems(wg, chanItems, cacheInstance, forceRefresh, itemsType)
+		go describeItems(ctx, wg, chanItems, cacheInstance, forceRefresh, itemsType)
 	}
 }
 
-func describeItems(wg *sync.WaitGroup, chanItems chan<- []resources.Item, cacheInstance cache.Cache, forceRefresh bool, res resources.AWSResourceType) {
+func describeItems(ctx context.Context, wg *sync.WaitGroup, chanItems chan<- []resources.Item, cacheInstance cache.CacheInterface, forceRefresh bool, res resources.AWSResourceType) {
 	defer wg.Done()
 	var result interface{}
 	var err error
 
 	items := []resources.Item{}
 
-	if cacheInstance.Enabled {
+	if viper.GetBool("cache.enabled") {
 
 		var found bool
 
-		result, found = cacheInstance.Cache.Get(res.GetCacheKey())
+		result, found = cacheInstance.Get(ctx, res.GetCacheKey())
 
 		if !forceRefresh && !found {
 			slog.Debug("Cache not yet initialized", "cache_key", res.GetCacheKey(), "forceRefresh", forceRefresh)

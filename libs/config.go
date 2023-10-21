@@ -60,6 +60,11 @@ func InitConfig() {
 
 	viper.UnmarshalKey("aws", &AWSConfigs)
 
+	viper.SetDefault("cache_type", "memory")
+	viper.SetDefault("redis_host", "localhost:6379")
+	viper.SetDefault("redis_db", 0)
+	viper.SetDefault("cache_expire", "1h")
+
 	if strings.ToLower(viper.GetString("loglevel")) == "debug" {
 		log.Printf("%+v", viper.AllSettings())
 		log.Printf("%+v", AWSConfigs)

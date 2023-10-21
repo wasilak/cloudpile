@@ -106,3 +106,9 @@ dist/**
 .vscode/
 node_modules
 .env
+
+
+web/assets/*.map
+web/assets/*.js
+web/assets/*.LICENSE.txt
+web/views/index.html

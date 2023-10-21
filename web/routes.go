@@ -15,7 +15,7 @@ import (
 
 func MainRoute(c echo.Context) error {
 	var tempalateData interface{}
-	return c.Render(http.StatusOK, "main", tempalateData)
+	return c.Render(http.StatusOK, "index", tempalateData)
 }
 
 func ApiConfigRoute(c echo.Context) error {

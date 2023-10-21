@@ -11,14 +11,44 @@ module.exports = {
                 use: 'ts-loader',
                 exclude: /node_modules/,
             },
+            {
+                test: /\.css$/i,
+                use: ["style-loader", "css-loader"],
+            },
         ],
     },
     resolve: {
         extensions: ['.tsx', '.ts', '.js'],
     },
+    // output: {
+    //     filename: 'bundle.js',
+    //     path: path.resolve(__dirname, './web/assets'),
+    // },
     output: {
-        filename: 'bundle.js',
         path: path.resolve(__dirname, './web/assets'),
+        filename: '[name].[contenthash].js',
+        // filename: 'bundle.js',
+        sourceMapFilename: '[name].[contenthash].map',
+        chunkFilename: '[id].[chunkhash].js'
+    },
+    devtool: 'source-map',
+    optimization: {
+        splitChunks: {
+            chunks: 'all',
+            minChunks: 1,
+            cacheGroups: {
+                defaultVendors: {
+                    test: /[\\/]node_modules[\\/]/,
+                    priority: -10,
+                    reuseExistingChunk: true
+                },
+                default: {
+                    minChunks: 2,
+                    priority: -20,
+                    reuseExistingChunk: true
+                }
+            }
+        }
     },
     devServer: {
         port: 3000,
@@ -28,9 +58,9 @@ module.exports = {
     plugins:
         [
             new HtmlWebpackPlugin({
-                template: path.resolve(__dirname, './web/src/header_template.html'),
-                hash: true, // Cache busting
-                filename: path.resolve(__dirname, './web/views/header.html'),
+                template: path.resolve(__dirname, './web/src/index_template.html'),
+                // hash: true, // Cache busting
+                filename: path.resolve(__dirname, './web/views/index.html'),
                 publicPath: '/public/assets/'
             }),
             new Dotenv()
