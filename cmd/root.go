@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/wasilak/cloudpile/cache"
+	"github.com/wasilak/cachego"
 	"github.com/wasilak/cloudpile/libs"
 	"github.com/wasilak/cloudpile/web"
 	"github.com/wasilak/loggergo"
@@ -34,7 +34,12 @@ var (
 			}
 
 			if viper.GetBool("cache.enabled") {
-				cache.CacheInit(ctx)
+				libs.CacheInstance, err = cachego.CacheInit(ctx, libs.CacheGoConfig)
+				if err != nil {
+					slog.Error(err.Error())
+					os.Exit(1)
+				}
+
 				libs.Runner(ctx)
 			}
 

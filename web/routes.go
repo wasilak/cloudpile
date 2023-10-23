@@ -8,7 +8,6 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/viper"
-	"github.com/wasilak/cloudpile/cache"
 	"github.com/wasilak/cloudpile/libs"
 	"github.com/wasilak/cloudpile/resources"
 )
@@ -55,7 +54,7 @@ func ApiSearchRoute(c echo.Context) error {
 	var items []resources.Item
 	if len(ids) > 0 {
 		var err error
-		items, err = libs.Run(ids, cache.CacheInstance, false)
+		items, err = libs.Run(c.Request().Context(), ids, false)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
@@ -67,7 +66,7 @@ func ApiSearchRoute(c echo.Context) error {
 func ApiListRoute(c echo.Context) error {
 	var ids []string
 
-	items, err := libs.Run(ids, cache.CacheInstance, false)
+	items, err := libs.Run(c.Request().Context(), ids, false)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}

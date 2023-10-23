@@ -9,14 +9,18 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/wasilak/cachego"
+	cachegoConfig "github.com/wasilak/cachego/config"
 )
 
 var (
-	AppName      = "cloudpile"
-	CfgFile      string
-	Listen       string
-	CacheEnabled bool
-	AWSConfigs   []AWSConfig
+	AppName       = "cloudpile"
+	CfgFile       string
+	Listen        string
+	CacheEnabled  bool
+	AWSConfigs    []AWSConfig
+	CacheGoConfig cachegoConfig.CacheGoConfig
+	CacheInstance cachego.CacheInterface
 )
 
 type AWSConfig struct {
@@ -59,11 +63,7 @@ func InitConfig() {
 	}
 
 	viper.UnmarshalKey("aws", &AWSConfigs)
-
-	viper.SetDefault("cache_type", "memory")
-	viper.SetDefault("redis_host", "localhost:6379")
-	viper.SetDefault("redis_db", 0)
-	viper.SetDefault("cache_expire", "1h")
+	viper.UnmarshalKey("cache", &CacheGoConfig)
 
 	if strings.ToLower(viper.GetString("loglevel")) == "debug" {
 		log.Printf("%+v", viper.AllSettings())

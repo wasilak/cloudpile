@@ -2,6 +2,7 @@ package libs
 
 import (
 	"context"
+	"encoding/json"
 	"net"
 	"slices"
 	"sync"
@@ -15,12 +16,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/spf13/viper"
-	"github.com/wasilak/cloudpile/cache"
 	"github.com/wasilak/cloudpile/resources"
 	ec2Resource "github.com/wasilak/cloudpile/resources/ec2"
 )
 
-func Run(ctx context.Context, IDs []string, cacheInstance cache.CacheInterface, forceRefresh bool) ([]resources.Item, error) {
+func Run(ctx context.Context, IDs []string, forceRefresh bool) ([]resources.Item, error) {
 
 	chanItems := make(chan []resources.Item)
 
@@ -33,7 +33,7 @@ func Run(ctx context.Context, IDs []string, cacheInstance cache.CacheInterface, 
 			if err != nil {
 				slog.Debug(err.Error(), "awsConfig", awsConfig, "region", region)
 			} else {
-				fetchItems(ctx, &wg, chanItems, region, awsConfigV2, awsConfig, cacheInstance, forceRefresh)
+				fetchItems(ctx, &wg, chanItems, region, awsConfigV2, awsConfig, forceRefresh)
 			}
 		}
 	}
@@ -57,7 +57,7 @@ func Run(ctx context.Context, IDs []string, cacheInstance cache.CacheInterface, 
 	return filteredItems, nil
 }
 
-func fetchItems(ctx context.Context, wg *sync.WaitGroup, chanItems chan<- []resources.Item, region string, awsConfigV2 aws.Config, awsConfig AWSConfig, cacheInstance cache.CacheInterface, forceRefresh bool) {
+func fetchItems(ctx context.Context, wg *sync.WaitGroup, chanItems chan<- []resources.Item, region string, awsConfigV2 aws.Config, awsConfig AWSConfig, forceRefresh bool) {
 	res := []resources.AWSResourceType{}
 	var (
 		accountID string
@@ -149,13 +149,13 @@ func fetchItems(ctx context.Context, wg *sync.WaitGroup, chanItems chan<- []reso
 
 	for _, itemsType := range res {
 		wg.Add(1)
-		go describeItems(ctx, wg, chanItems, cacheInstance, forceRefresh, itemsType)
+		go describeItems(ctx, wg, chanItems, forceRefresh, itemsType)
 	}
 }
 
-func describeItems(ctx context.Context, wg *sync.WaitGroup, chanItems chan<- []resources.Item, cacheInstance cache.CacheInterface, forceRefresh bool, res resources.AWSResourceType) {
+func describeItems(ctx context.Context, wg *sync.WaitGroup, chanItems chan<- []resources.Item, forceRefresh bool, res resources.AWSResourceType) {
 	defer wg.Done()
-	var result interface{}
+	var result []byte
 	var err error
 
 	items := []resources.Item{}
@@ -164,7 +164,11 @@ func describeItems(ctx context.Context, wg *sync.WaitGroup, chanItems chan<- []r
 
 		var found bool
 
-		result, found = cacheInstance.Get(ctx, res.GetCacheKey())
+		result, found, err = CacheInstance.Get(res.GetCacheKey())
+		if err != nil {
+			slog.Error(err.Error())
+			return
+		}
 
 		if !forceRefresh && !found {
 			slog.Debug("Cache not yet initialized", "cache_key", res.GetCacheKey(), "forceRefresh", forceRefresh)
@@ -172,7 +176,12 @@ func describeItems(ctx context.Context, wg *sync.WaitGroup, chanItems chan<- []r
 
 		if found {
 			slog.Debug("Cache hit", "cache_key", res.GetCacheKey(), "forceRefresh", forceRefresh)
-			items = result.([]resources.Item)
+
+			if err := json.Unmarshal(result, &items); err != nil {
+				slog.Error(err.Error())
+				return
+			}
+
 		} else {
 			slog.Debug("Cache miss", "cache_key", res.GetCacheKey(), "forceRefresh", forceRefresh)
 		}
@@ -183,15 +192,19 @@ func describeItems(ctx context.Context, wg *sync.WaitGroup, chanItems chan<- []r
 				slog.Error(err.Error())
 			}
 
-			// set a value with a cost of 1
-			cacheInstance.Cache.Set(res.GetCacheKey(), items, 1)
+			// Serialize the item to bytes
+			itemsBytes, err := json.Marshal(items)
+			if err != nil {
+				slog.Error(err.Error())
+				return
+			}
 
-			// wait for value to pass through buffers
-			cacheInstance.Cache.Wait()
+			// set a value in cache
+			CacheInstance.Set(res.GetCacheKey(), itemsBytes)
 
-			nextUpdate := time.Now().Add(cacheInstance.TTL)
+			nextUpdate := time.Now().Add(CacheInstance.GetConfig().TTL)
 
-			slog.Debug("Cache refresh done", "cache_key", res.GetCacheKey(), "forceRefresh", forceRefresh, "next_in", cache.CacheInstance.TTL, "next_time", nextUpdate)
+			slog.Debug("Cache refresh done", "cache_key", res.GetCacheKey(), "forceRefresh", forceRefresh, "next_in", CacheInstance.GetConfig().TTL, "next_time", nextUpdate)
 		}
 
 	} else {
