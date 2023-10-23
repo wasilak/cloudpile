@@ -18,6 +18,7 @@ export const FilterSelect = ({ items, selected, onChange, label }: any) => {
                     label={label}
                     onChange={onChange}
                 >
+                    <MenuItem key="all" value="">All</MenuItem>
                     {items &&
                         items.map(function (item: string) {
                             return (

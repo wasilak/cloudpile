@@ -13,7 +13,7 @@ func Runner(ctx context.Context) {
 
 	slog.Debug("Initial cache refresh...")
 
-	Run(ctx, []string{}, true)
+	Run(ctx, []string{}, false)
 
 	slog.Debug("Cache refresh done", "next_in", CacheInstance.GetConfig().TTL)
 

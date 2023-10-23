@@ -4,9 +4,6 @@ import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import Stack from "@mui/material/Stack";
 import Chip from '@mui/material/Chip';
-// import List from '@mui/material/List';
-// import ListItem from '@mui/material/ListItem';
-// import ListItemText from '@mui/material/ListItemText';
 
 import { AWSResource, ItemTag } from "./models";
 import { GetAWSResources } from "./api";
@@ -22,29 +19,14 @@ import Tooltip from '@mui/material/Tooltip';
 
 import { FilterSelect } from './table/filterSelect'
 
+import Grid from '@mui/material/Unstable_Grid2';
+
 export const ResourcesTable = () => {
     const [resources, setAWSResources] = useState<Array<AWSResource>>(undefined);
     const [rows, setRows] = useState([]);
     const [columns, setColumns] = useState([]);
 
     const gridRef = useRef<AgGridReact<AWSResource>>(null);
-
-    // const TagsCellRenderer = (props: ICellRendererParams) => {
-    //     return (
-    //         <List dense={true}>
-    //             {props.value.map((item: ItemTag) => {
-    //                 return (
-    //                     <ListItem key={`${item.key}=${item.value}`}>
-    //                         <ListItemText
-    //                             primary={`${item.key} = ${item.value}`}
-    //                         />
-    //                     </ListItem>
-    //                 )
-    //             })
-    //             }
-    //         </List>
-    //     );
-    // };
 
     const TagsCellRenderer = (props: ICellRendererParams) => {
         return (
@@ -86,33 +68,78 @@ export const ResourcesTable = () => {
             setRows(resources);
 
             const uniqueResourceTypes = Array.from(new Set(resources.map((item: AWSResource) => item.type)));
-
             setResourceTypes(uniqueResourceTypes);
+
+            const uniqueRegions = Array.from(new Set(resources.map((item: AWSResource) => item.region)));
+            setRegions(uniqueRegions);
+
+            const uniqueAccounts = Array.from(new Set(resources.map((item: AWSResource) => `${item.accountAlias} (${item.account})`)));
+            setAccounts(uniqueAccounts);
+
         }
     };
 
     const [resourceTypes, setResourceTypes] = useState([]);
-    const [resourceTypeSelected, setResourceTypeSelected] = useState('');
+    const [type, setResourceTypeSelected] = useState('');
 
     const onChangeResourceTypes = (selectedOption: any) => {
         setResourceTypeSelected(selectedOption.target.value);
     }
 
-    const isExternalFilterPresent = useCallback((): boolean => {
-        console.log("isExternalFilterPresent", resourceTypeSelected !== '');
-        return resourceTypeSelected !== '';
-    }, []);
+    const [regions, setRegions] = useState([]);
+    const [region, setRegionSelected] = useState('');
+
+    const onChangeRegions = (selectedOption: any) => {
+        setRegionSelected(selectedOption.target.value);
+    }
+
+    const [accounts, setAccounts] = useState([]);
+    const [account, setAccountSelected] = useState('');
+
+    const onChangeAccounts = (selectedOption: any) => {
+        setAccountSelected(selectedOption.target.value);
+    }
+
+    const isExternalFilterPresent = (): boolean => {
+        return type !== '' || region !== '';
+    };
 
     const doesExternalFilterPass = useCallback(
         (node: IRowNode<AWSResource>): boolean => {
-            console.log("doesExternalFilterPass", doesExternalFilterPass);
+            let outcome = true;
+
             if (node.data) {
-                console.log(node.data);
-                return node.data.type == resourceTypeSelected;
+
+                if (region != '') {
+                    if (outcome && node.data.region == region) {
+                        outcome = true;
+                    } else {
+                        return false;
+                    }
+                }
+
+                if (account != '') {
+                    if (outcome && node.data.account == account) {
+                        outcome = true;
+                    } else {
+                        return false;
+                    }
+                }
+
+                if (type != '') {
+
+                    if (outcome && node.data.type == type) {
+                        outcome = true;
+                    } else {
+                        return false;
+                    }
+                }
+
+                return outcome;
             }
             return true;
         },
-        [resourceTypeSelected]
+        [type, region]
     );
 
     useEffect(() => {
@@ -125,14 +152,24 @@ export const ResourcesTable = () => {
 
     useEffect(() => {
         gridRef?.current?.api?.onFilterChanged();
-    }, [resourceTypeSelected]);
+    }, [type, region]);
 
     return (
         <Box sx={{ mt: 4 }}>
             {resources
-                ? <Box >
-                    <Box >
-                        <FilterSelect items={resourceTypes} onChange={onChangeResourceTypes} selected={resourceTypeSelected} label="Type"></FilterSelect>
+                ? <Box>
+                    <Box>
+                        <Grid container spacing={2}>
+                            <Grid xs={4}>
+                                <FilterSelect items={resourceTypes} onChange={onChangeResourceTypes} selected={type} label="Type"></FilterSelect>
+                            </Grid>
+                            <Grid xs={4}>
+                                <FilterSelect items={regions} onChange={onChangeRegions} selected={region} label="Region"></FilterSelect>
+                            </Grid>
+                            <Grid xs={4}>
+                                <FilterSelect items={accounts} onChange={onChangeAccounts} selected={account} label="Account"></FilterSelect>
+                            </Grid>
+                        </Grid>
                     </Box>
 
                     <Box className="ag-theme-material" height="80vh" sx={{ mt: 4 }}>
@@ -142,6 +179,7 @@ export const ResourcesTable = () => {
                             columnDefs={columns}
                             pagination={true}
                             paginationAutoPageSize={true}
+                            animateRows={true}
                             isExternalFilterPresent={isExternalFilterPresent}
                             doesExternalFilterPass={doesExternalFilterPass}
                         />
