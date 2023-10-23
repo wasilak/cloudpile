@@ -112,3 +112,4 @@ web/assets/*.map
 web/assets/*.js
 web/assets/*.LICENSE.txt
 web/views/index.html
+cache
