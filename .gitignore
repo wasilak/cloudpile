@@ -104,3 +104,4 @@ src/pkged.go
 **/tmp
 dist/**
 .vscode/
+node_modules
