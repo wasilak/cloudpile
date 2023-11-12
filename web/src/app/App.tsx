@@ -1,5 +1,3 @@
-import { useState, useEffect } from "react";
-
 import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
 import Container from '@mui/material/Container';
@@ -7,7 +5,7 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { purple } from '@mui/material/colors';
 import ResponsiveAppBar from './menu'
 
-import { Routes, Route, Outlet, Link } from "react-router-dom";
+import { Routes, Route, Outlet } from "react-router-dom";
 
 import { Home } from "./pages/home"
 import { Search } from "./pages/search"
