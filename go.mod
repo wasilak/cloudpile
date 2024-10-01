@@ -17,7 +17,7 @@ require (
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/newrelic/go-agent/v3 v3.32.0
 	github.com/samber/slog-echo v1.12.5
-	github.com/spf13/cobra v1.8.0
+	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.18.2
 	github.com/wasilak/loggergo v1.0.5
 )
