@@ -22,12 +22,12 @@ var (
 			cmd.SetContext(ctx)
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			loggerConfig := loggergo.LoggerGoConfig{
-				Level:  viper.GetString("loglevel"),
-				Format: viper.GetString("logformat"),
+			loggerConfig := loggergo.Config{
+				Level:  loggergo.LogLevelFromString(viper.GetString("loglevel")),
+				Format: loggergo.LogFormatFromString(viper.GetString("logformat")),
 			}
 
-			_, err := loggergo.LoggerInit(loggerConfig)
+			_, err := loggergo.LoggerInit(ctx, loggerConfig)
 			if err != nil {
 				slog.Error(err.Error())
 				os.Exit(1)

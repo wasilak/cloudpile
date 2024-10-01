@@ -29,7 +29,7 @@ func (r *EC2Instance) Get() ([]resources.Item, error) {
 	if err != nil {
 		match, _ := regexp.MatchString("does not exist", err.Error())
 		if !match {
-			slog.Debug("Error", slog.AnyValue(err))
+			slog.Debug("Error", "error", err)
 		}
 		return items, err
 	}
