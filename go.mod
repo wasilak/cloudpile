@@ -4,11 +4,11 @@ go 1.23
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.32.0
-	github.com/aws/aws-sdk-go-v2/config v1.27.40
+	github.com/aws/aws-sdk-go-v2/config v1.27.41
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.39
-	github.com/aws/aws-sdk-go-v2/service/autoscaling v1.44.4
+	github.com/aws/aws-sdk-go-v2/service/autoscaling v1.45.0
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.181.0
-	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.38.4
+	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.39.0
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.63.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.32.0
 	github.com/dgraph-io/ristretto v1.0.0
