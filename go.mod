@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.41
 	github.com/aws/aws-sdk-go-v2/service/autoscaling v1.45.2
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.182.0
-	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.39.2
+	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.40.0
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.63.2
 	github.com/aws/aws-sdk-go-v2/service/sts v1.32.2
 	github.com/dgraph-io/ristretto v1.0.0
