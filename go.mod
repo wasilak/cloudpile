@@ -6,9 +6,9 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.32.3
 	github.com/aws/aws-sdk-go-v2/config v1.28.1
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.42
-	github.com/aws/aws-sdk-go-v2/service/autoscaling v1.46.1
+	github.com/aws/aws-sdk-go-v2/service/autoscaling v1.47.0
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.187.0
-	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.40.1
+	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.41.0
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.64.1
 	github.com/aws/aws-sdk-go-v2/service/sts v1.32.3
 	github.com/dgraph-io/ristretto v1.0.1
