@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.41.1
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.66.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.32.4
-	github.com/dgraph-io/ristretto v0.2.0
+	github.com/dgraph-io/ristretto/v2 v2.0.0
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo-contrib v0.17.1
 	github.com/labstack/echo/v4 v4.12.0
