@@ -8,7 +8,7 @@ import (
 
 // Cache type
 type Cache struct {
-	Cache   *ristretto.Cache[string, interface{}]
+	Cache   *ristretto.Cache
 	TTL     time.Duration
 	Enabled bool
 }
@@ -30,7 +30,7 @@ func InitCache(enabled bool, TTLString string) Cache {
 		panic(cacheErr)
 	}
 
-	cacheInstance.Cache, cacheErr = ristretto.NewCache(&ristretto.Config[string, interface{}]{
+	cacheInstance.Cache, cacheErr = ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
 		MaxCost:     1 << 28, // maximum cost of cache (256mb).
 		BufferItems: 64,      // number of keys per Get buffer.
