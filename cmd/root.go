@@ -12,6 +12,8 @@ import (
 	"github.com/wasilak/cloudpile/libs"
 	"github.com/wasilak/cloudpile/web"
 	"github.com/wasilak/loggergo"
+	loggergoLib "github.com/wasilak/loggergo/lib"
+	loggergoTypes "github.com/wasilak/loggergo/lib/types"
 )
 
 var (
@@ -22,12 +24,14 @@ var (
 			cmd.SetContext(ctx)
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			loggerConfig := loggergo.Config{
-				Level:  loggergo.LogLevelFromString(viper.GetString("loglevel")),
-				Format: loggergo.LogFormatFromString(viper.GetString("logformat")),
+			var err error
+
+			loggerConfig := loggergoTypes.Config{
+				Level:  loggergoLib.LogLevelFromString(viper.GetString("loglevel")),
+				Format: loggergoLib.LogFormatFromString(viper.GetString("logformat")),
 			}
 
-			_, err := loggergo.LoggerInit(ctx, loggerConfig)
+			ctx, _, err = loggergo.Init(ctx, loggerConfig)
 			if err != nil {
 				slog.Error(err.Error())
 				os.Exit(1)
