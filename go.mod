@@ -19,7 +19,7 @@ require (
 	github.com/samber/slog-echo v1.14.7
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
-	github.com/wasilak/loggergo v1.7.2
+	github.com/wasilak/loggergo v1.7.3
 )
 
 require (
@@ -75,7 +75,7 @@ require (
 	github.com/wasilak/otelgo v1.2.2 // indirect
 	gitlab.com/greyxor/slogor v1.5.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
-	go.opentelemetry.io/contrib/bridges/otelslog v0.7.0 // indirect
+	go.opentelemetry.io/contrib/bridges/otelslog v0.8.0 // indirect
 	go.opentelemetry.io/otel v1.33.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.9.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp v0.9.0 // indirect
