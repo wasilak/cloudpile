@@ -13,10 +13,10 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.3
 	github.com/dgraph-io/ristretto/v2 v2.0.1
 	github.com/joho/godotenv v1.5.1
-	github.com/labstack/echo-contrib v0.17.1
+	github.com/labstack/echo-contrib v0.17.2
 	github.com/labstack/echo/v4 v4.13.3
 	github.com/newrelic/go-agent/v3 v3.35.1
-	github.com/samber/slog-echo v1.14.7
+	github.com/samber/slog-echo v1.14.8
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 	github.com/wasilak/loggergo v1.7.3
