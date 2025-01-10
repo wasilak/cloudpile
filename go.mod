@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.43.2
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.69.2
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.3
-	github.com/dgraph-io/ristretto/v2 v2.0.1
+	github.com/dgraph-io/ristretto/v2 v2.1.0
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo-contrib v0.17.2
 	github.com/labstack/echo/v4 v4.13.3
@@ -90,7 +90,7 @@ require (
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 // indirect
 	golang.org/x/net v0.33.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20241223144023-3abc09e42ca8 // indirect
