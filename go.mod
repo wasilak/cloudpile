@@ -1,6 +1,8 @@
 module github.com/wasilak/cloudpile
 
-go 1.23
+go 1.24
+
+toolchain go1.24.0
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.36.1
@@ -19,7 +21,7 @@ require (
 	github.com/samber/slog-echo v1.15.1
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
-	github.com/wasilak/loggergo v1.7.3
+	github.com/wasilak/loggergo v1.7.4
 )
 
 require (
@@ -71,7 +73,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
-	github.com/wasilak/otelgo v1.2.3 // indirect
+	github.com/wasilak/otelgo v1.2.4 // indirect
 	gitlab.com/greyxor/slogor v1.6.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/bridges/otelslog v0.9.0 // indirect
@@ -92,8 +94,8 @@ require (
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/time v0.10.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250207221924-e9438ea467c6 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250207221924-e9438ea467c6 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250212204824-5a70512c5d8b // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250212204824-5a70512c5d8b // indirect
 	google.golang.org/grpc v1.70.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
