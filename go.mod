@@ -20,7 +20,7 @@ require (
 	github.com/newrelic/go-agent/v3 v3.38.0
 	github.com/samber/slog-echo v1.16.1
 	github.com/spf13/cobra v1.9.1
-	github.com/spf13/viper v1.20.0
+	github.com/spf13/viper v1.20.1
 	github.com/wasilak/loggergo v1.7.4
 )
 
