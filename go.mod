@@ -15,7 +15,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.17
 	github.com/dgraph-io/ristretto/v2 v2.1.0
 	github.com/joho/godotenv v1.5.1
-	github.com/labstack/echo-contrib v0.17.2
+	github.com/labstack/echo-contrib v0.17.3
 	github.com/labstack/echo/v4 v4.13.3
 	github.com/newrelic/go-agent/v3 v3.38.0
 	github.com/samber/slog-echo v1.16.1
