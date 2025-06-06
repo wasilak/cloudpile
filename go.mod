@@ -6,13 +6,13 @@ toolchain go1.24.3
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.36.3
-	github.com/aws/aws-sdk-go-v2/config v1.29.14
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.67
-	github.com/aws/aws-sdk-go-v2/service/autoscaling v1.52.4
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.217.0
-	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.45.2
-	github.com/aws/aws-sdk-go-v2/service/lambda v1.71.2
-	github.com/aws/aws-sdk-go-v2/service/sts v1.33.19
+	github.com/aws/aws-sdk-go-v2/config v1.29.15
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.68
+	github.com/aws/aws-sdk-go-v2/service/autoscaling v1.53.1
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.224.1
+	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.45.3
+	github.com/aws/aws-sdk-go-v2/service/lambda v1.71.3
+	github.com/aws/aws-sdk-go-v2/service/sts v1.33.20
 	github.com/dgraph-io/ristretto/v2 v2.2.0
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo-contrib v0.17.4
