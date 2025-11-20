@@ -15,7 +15,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo-contrib v0.17.4
 	github.com/labstack/echo/v4 v4.13.4
-	github.com/newrelic/go-agent/v3 v3.39.0
+	github.com/newrelic/go-agent/v3 v3.42.0
 	github.com/samber/slog-echo v1.16.1
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
