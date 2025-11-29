@@ -1,4 +1,4 @@
-FROM quay.io/wasilak/golang:1.24-alpine as builder
+FROM quay.io/wasilak/golang:1.25-alpine as builder
 
 COPY . /app
 WORKDIR /app/
