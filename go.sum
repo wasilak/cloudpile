@@ -125,6 +125,8 @@ github.com/samber/slog-common v0.19.0 h1:fNcZb8B2uOLooeYwFpAlKjkQTUafdjfqKcwcC89
 github.com/samber/slog-common v0.19.0/go.mod h1:dTz+YOU76aH007YUU0DffsXNsGFQRQllPQh9XyNoA3M=
 github.com/samber/slog-echo v1.18.0 h1:fnDeUhwqoAsQZxbmIizO0avwE0qjjoefAvhXoByxN3U=
 github.com/samber/slog-echo v1.18.0/go.mod h1:4diugqPTk6iQdL7gZFJIyf6zGMLVMaGnCmNm+DBSMRU=
+github.com/samber/slog-echo v1.23.0 h1:jFzK9t9hLvEjic2tfIkgXt2r22Zz2UYaYrUyM/S0pks=
+github.com/samber/slog-echo v1.23.0/go.mod h1:caG3zeXgrPRlGKaPVqyWG1MEc6nwrmtDjoLN/mc0PrM=
 github.com/samber/slog-multi v1.6.0 h1:i1uBY+aaln6ljwdf7Nrt4Sys8Kk6htuYuXDHWJsHtZg=
 github.com/samber/slog-multi v1.6.0/go.mod h1:qTqzmKdPpT0h4PFsTN5rYRgLwom1v+fNGuIrl1Xnnts=
 github.com/spf13/afero v1.15.0 h1:b/YBCLWAJdFWJTN9cLhiXXcD7mzKn9Dm86dNnfyQw1I=
